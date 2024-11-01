@@ -1,8 +1,8 @@
--- Create the database
-CREATE DATABASE GoodReads;
+-- -- Create the database
+-- CREATE DATABASE GoodReads;
 
--- Use the database
-USE GoodReads;
+-- -- Use the database
+-- USE GoodReads;
 
 -- Create the Books table
 CREATE TABLE Books (
@@ -22,7 +22,7 @@ CREATE TABLE Members (
     Address VARCHAR(255),
     Phone VARCHAR(20),
     Email VARCHAR(100),
-    MembershipDate DATE DEFAULT CURRENT_DATE
+    MembershipDate DATETIME DEFAULT CURRENT_TIMESTAMP
 ) AUTO_INCREMENT = 1;
 
 CREATE TABLE MemberPasswords (
@@ -36,8 +36,8 @@ CREATE TABLE Transactions (
     TransactionID INT PRIMARY KEY AUTO_INCREMENT,
     MemberID INT,
     BookID INT,
-    BorrowDate DATE DEFAULT CURRENT_DATE, 
-    ReturnDate DATE,
+    BorrowDate DATETIME DEFAULT CURRENT_TIMESTAMP, 
+    ReturnDate DATETIME,
     Status ENUM('Borrowed', 'Returned') DEFAULT 'Borrowed',
     FOREIGN KEY (MemberID) REFERENCES Members(MemberID),
     FOREIGN KEY (BookID) REFERENCES Books(BookID)
@@ -51,7 +51,7 @@ CREATE TABLE Staff (
     ContactInfo VARCHAR(100)
 ) AUTO_INCREMENT = 1;
 
-CREATE StaffPasswords (
+CREATE TABLE StaffPasswords (
     StaffID INT PRIMARY KEY,
     Password VARCHAR(255) NOT NULL,
     FOREIGN KEY (StaffID) REFERENCES Staff(StaffID)
@@ -96,14 +96,10 @@ INSERT INTO MemberPasswords (MemberID, Password) VALUES
     (7, 'password7');
 
 INSERT INTO Transactions(MemberID,BookID,BorrowDate,Status)VALUES
-    (1,2'2024-10-26','Borrowed'),
+    (1,2,'2024-10-26','Borrowed'),
     (2,3,'2024-11-06','Borrowed'),
     (3,4,'2024-5-20','Borrowed'),
     (4,5,'2024-7-21','Borrowed'),
     
     (1,2,'2024-10-28','Returned'),
     (2,3,'2024-12-10','Returned');
-
-    
-
-
