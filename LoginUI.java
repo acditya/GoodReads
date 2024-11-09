@@ -6,6 +6,8 @@ public class LoginUI extends JFrame {
     private JTextField userIdField;
     private JPasswordField passwordField;
     private JComboBox<String> roleSelector;
+    private Member member;
+    private Librarian librarian;
 
     public LoginUI() {
         setTitle("GoodReads Library Login");
@@ -38,24 +40,38 @@ public class LoginUI extends JFrame {
             String userId = userIdField.getText();
             String password = new String(passwordField.getPassword());
             String role = roleSelector.getSelectedItem().toString().toLowerCase();
+            boolean isAuthenticated = false;
 
             AuthService authService = new AuthService();
-            User user = authService.authenticate(userId, password, role);
+            if (role.equals("librarian")) {
+                LoginUI.this.librarian =  authService.authenticateLibrarian(userId, password);
+                isAuthenticated = LoginUI.this.librarian != null;
+            } else { // role is member
+                LoginUI.this.member = authService.authenticateMember(userId, password);
+                isAuthenticated = LoginUI.this.member != null;
+            }
 
-            if (user != null) {
-                JOptionPane.showMessageDialog(LoginUI.this, "Welcome, " + user.getName());
-                if (role.equals("librarian")) {
-                    new LibrarianUI().setVisible(true);
+            // User user = authService.authenticate(userId, password, role);
+            try{
+                if (isAuthenticated) {
+                    if (role.equals("librarian")) {
+                        System.out.println("Welcome, " + LoginUI.this.librarian + " " + LoginUI.this.librarian.getName());
+                        JOptionPane.showMessageDialog(LoginUI.this, "Welcome, " + LoginUI.this.librarian.getName());
+                        new LibrarianUI(LoginUI.this.librarian).setVisible(true);
+                    } else {
+                        System.out.println("Welcome, " + LoginUI.this.member + " " + LoginUI.this.member.getName());
+                        JOptionPane.showMessageDialog(LoginUI.this, "Welcome, " + LoginUI.this.member.getName());
+                        new MemberUI(LoginUI.this.member).setVisible(true);
+                    }
+                    dispose();
                 } else {
-                    new MemberUI().setVisible(true);
+                    JOptionPane.showMessageDialog(LoginUI.this, "Invalid Credentials.");
                 }
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(LoginUI.this, "Invalid credentials.");
+            } catch(Exception e1){
+                JOptionPane.showMessageDialog(LoginUI.this, "An error has occured"+ e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new LoginUI().setVisible(true));
     }

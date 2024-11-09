@@ -6,6 +6,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "MemberUI",
+            "request": "launch",
+            "mainClass": "MemberUI",
+            "projectName": "GoodReads_f855bde3"
+        },
+        {
+            "type": "java",
+            "name": "LibrarianUI",
+            "request": "launch",
+            "mainClass": "LibrarianUI",
+            "projectName": "GoodReads_f855bde3"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"

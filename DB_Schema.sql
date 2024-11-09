@@ -6,12 +6,13 @@
 
 -- Create the Books table
 CREATE TABLE Books (
-    BookID INT PRIMARY KEY AUTO_INCREMENT,
+    ISBN INT PRIMARY KEY AUTO_INCREMENT,
     Title VARCHAR(255) NOT NULL,
     Author VARCHAR(255) NOT NULL,
     Genre VARCHAR(100),
     Publisher VARCHAR(100),
     YearPublished INT,
+    TotalCopies INT DEFAULT 0,
     CopiesAvailable INT DEFAULT 0
 ) AUTO_INCREMENT = 1;
 
@@ -35,12 +36,12 @@ CREATE TABLE MemberPasswords (
 CREATE TABLE Transactions (
     TransactionID INT PRIMARY KEY AUTO_INCREMENT,
     MemberID INT,
-    BookID INT,
+    ISBN INT,
     BorrowDate DATETIME DEFAULT CURRENT_TIMESTAMP, 
     ReturnDate DATETIME,
     Status ENUM('Borrowed', 'Returned') DEFAULT 'Borrowed',
     FOREIGN KEY (MemberID) REFERENCES Members(MemberID),
-    FOREIGN KEY (BookID) REFERENCES Books(BookID)
+    FOREIGN KEY (ISBN) REFERENCES Books(ISBN)
 ) AUTO_INCREMENT = 1;
 
 -- Create the Staff Tables
@@ -58,12 +59,12 @@ CREATE TABLE StaffPasswords (
 );
 
 -- Basic Database Population INSERTS
-INSERT INTO Books (Title, Author, Genre, Publisher, YearPublished, CopiesAvailable) VALUES
-    ('To Kill a Mockingbird', 'Harper Lee', 'Fiction', 'J.B. Lippincott & Co.', 1960, 5),
-    ('1984', 'George Orwell', 'Dystopian', 'Secker & Warburg', 1949, 3),
-    ('Pride and Prejudice', 'Jane Austen', 'Romance', 'T. Egerton, Whitehall', 1813, 7),
-    ('The Great Gatsby', 'F. Scott Fitzgerald', 'Fiction', 'Charles Scribner''s Sons', 1925, 4),
-    ('The Catcher in the Rye', 'J.D. Salinger', 'Fiction', 'Little, Brown and Company', 1951, 2);
+INSERT INTO Books (Title, Author, Genre, Publisher, YearPublished, TotalCopies, CopiesAvailable) VALUES
+    ('To Kill a Mockingbird', 'Harper Lee', 'Fiction', 'J.B. Lippincott & Co.', 1960, 5, 5),
+    ('1984', 'George Orwell', 'Dystopian', 'Secker & Warburg', 1949, 3, 3),
+    ('Pride and Prejudice', 'Jane Austen', 'Romance', 'T. Egerton, Whitehall', 1813, 7, 7),
+    ('The Great Gatsby', 'F. Scott Fitzgerald', 'Fiction', 'Charles Scribner''s Sons', 1925, 4, 4),
+    ('The Catcher in the Rye', 'J.D. Salinger', 'Fiction', 'Little, Brown and Company', 1951, 2, 2);
 
 INSERT INTO Staff (Name, Role, ContactInfo) VALUES
     ('Aditya Chatterjee', 'Librarian', '0501234567'),
@@ -95,7 +96,7 @@ INSERT INTO MemberPasswords (MemberID, Password) VALUES
     (6, 'password6'),
     (7, 'password7');
 
-INSERT INTO Transactions(MemberID,BookID,BorrowDate,Status)VALUES
+INSERT INTO Transactions(MemberID,ISBN,BorrowDate,Status)VALUES
     (1,2,'2024-10-26','Borrowed'),
     (2,3,'2024-11-06','Borrowed'),
     (3,4,'2024-5-20','Borrowed'),

@@ -20,23 +20,38 @@ public class DatabaseManager {
     }
 
     public static Connection getConnection() {
-        return connection;
+        // Check if the connection is valid before returning
+        try {
+            if (connection != null && !connection.isClosed()) {
+                return connection;
+            } else {
+                // Re-establish the connection if it's closed
+                connection = DriverManager.getConnection(URL, USER, PASSWORD);
+                System.out.println("Reconnected to the database.");
+                return connection;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error during connection check: " + e.getMessage());
+            return null;
+        }
     }
 
     public ResultSet executeQuery(String query, Object... parameters) throws SQLException {
-        PreparedStatement statement = connection.prepareStatement(query);
-        for (int i = 0; i < parameters.length; i++) {
-            statement.setObject(i + 1, parameters[i]);
+        try (PreparedStatement statement = getConnection().prepareStatement(query)) {
+            for (int i = 0; i < parameters.length; i++) {
+                statement.setObject(i + 1, parameters[i]);
+            }
+            return statement.executeQuery();
         }
-        return statement.executeQuery();
     }
 
     public int executeUpdate(String query, Object... parameters) throws SQLException {
-        PreparedStatement statement = connection.prepareStatement(query);
-        for (int i = 0; i < parameters.length; i++) {
-            statement.setObject(i + 1, parameters[i]);
+        try (PreparedStatement statement = getConnection().prepareStatement(query)) {
+            for (int i = 0; i < parameters.length; i++) {
+                statement.setObject(i + 1, parameters[i]);
+            }
+            return statement.executeUpdate();
         }
-        return statement.executeUpdate();
     }
 
     public static void main(String[] args) {

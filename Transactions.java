@@ -5,16 +5,16 @@ import java.sql.SQLException;
 public class Transactions{
 
     private int MemberId;
-    private int BookID;
+    private int ISBN;
     private int transactionId;
     private String status;
     private String BorrowDate;
     private String ReturnDate;
     
-    public Transactions(int memberId, int bookId, String status) {
+    public Transactions(int memberId, int ISBN, String status) {
 
         this.MemberId = memberId;
-        this.BookID = bookId;
+        this.ISBN = ISBN;
         this.status = status;
     }
         // Getters and Setters
@@ -34,12 +34,12 @@ public class Transactions{
         this.MemberId = memberId;
     }
 
-    public int getBookId() {
-        return BookID;
+    public int getISBN() {
+        return ISBN;
     }
 
-    public void setBookId(int bookId) {
-        this.BookID = bookId;
+    public void setISBN(int ISBN) {
+        this.ISBN = ISBN;
     }
 
     public String getBorrowDate() {
@@ -70,10 +70,10 @@ public class Transactions{
     public boolean createTransaction() {
         try (Connection conn = DatabaseManager.getConnection()) {
             // SQL query to insert a new transaction
-            String sql = "INSERT INTO Transactions (MemberID, BookID, BorrowDate, Status) VALUES (?, ?, CURRENT_DATE, ?)";
+            String sql = "INSERT INTO Transactions (MemberID, ISBN, BorrowDate, Status) VALUES (?, ?, CURRENT_DATE, ?)";
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setInt(1, this.MemberId);
-            stmt.setInt(2, this.BookID);
+            stmt.setInt(2, this.ISBN);
             stmt.setString(3, this.status);
 
             int rowsAffected = stmt.executeUpdate();
