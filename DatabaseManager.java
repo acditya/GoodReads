@@ -3,6 +3,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseManager {
     private static final String URL = "jdbc:mysql://localhost:3306/GoodReads";
@@ -51,6 +53,49 @@ public class DatabaseManager {
                 statement.setObject(i + 1, parameters[i]);
             }
             return statement.executeUpdate();
+        }
+    }
+
+    public Object[][] getBookData() throws SQLException {
+        String query = "SELECT * FROM Books";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+
+            List<Object[]> data = new ArrayList<>();
+            while (rs.next()) {
+                data.add(new Object[]{
+                    rs.getInt("ISBN"),
+                    rs.getString("Title"),
+                    rs.getString("Author"),
+                    rs.getInt("CopiesAvailable")
+                });
+            }
+            return data.toArray(new Object[0][]);
+        }
+    }
+
+    public Object[][] getUserData() throws SQLException {
+        String query = "SELECT Members.MemberID, Members.Name, Members.Address, Members.Phone, Members.Email, Members.MembershipDate, MemberPasswords.Password " +
+                       "FROM Members " +
+                       "JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+    
+            List<Object[]> data = new ArrayList<>();
+            while (rs.next()) {
+                data.add(new Object[]{
+                    rs.getInt("MemberID"),
+                    rs.getString("Name"),
+                    rs.getString("Email"),
+                    rs.getString("Phone"),
+                    rs.getString("Address"),
+                    rs.getTimestamp("MembershipDate"),
+                    rs.getString("Password")
+                });
+            }
+            return data.toArray(new Object[0][]);
         }
     }
 

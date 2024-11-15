@@ -2,6 +2,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
 import java.sql.*;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -28,8 +30,13 @@ public class LibrarianUI extends JFrame {
 
         // Book Table
         String[] bookColumns = {"ID", "Title", "Author", "Total Count", "Available", "Borrowed"};
-        Object[][] bookData = {}; // Replace with actual data
-        JTable bookTable = new JTable(bookData, bookColumns);
+        DefaultTableModel bookTableModel = new DefaultTableModel(bookColumns, 0){
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        JTable bookTable = new JTable(bookTableModel);
         JScrollPane bookScrollPane = new JScrollPane(bookTable);
         bookManagementPanel.add(bookScrollPane, BorderLayout.CENTER);
 
@@ -125,6 +132,25 @@ public class LibrarianUI extends JFrame {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding book: " + ex.getMessage());
                     }
                 }
+
+                // Update Book Table After Changes
+                try {
+                    DatabaseManager dbManager = new DatabaseManager();
+                    Object[][] bookData = dbManager.getBookData();
+
+                    // Clear existing data
+                    SwingUtilities.invokeLater(() -> {
+                        bookTableModel.setRowCount(0);
+
+                        for (Object[] row : bookData) {
+                            bookTableModel.addRow(row);
+                        }
+                    });
+                } catch (SQLException ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching book data: " + ex.getMessage());
+                    });
+                }
             }
         });
 
@@ -171,9 +197,29 @@ public class LibrarianUI extends JFrame {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating book: " + ex.getMessage());
                     }
                 }
-            }
-        });
+            
+            // Update Book Table After Changes
+            try {
+                DatabaseManager dbManager = new DatabaseManager();
+                Object[][] bookData = dbManager.getBookData();
 
+                // Clear existing data
+                SwingUtilities.invokeLater(() -> {
+                    bookTableModel.setRowCount(0);
+
+                    for (Object[] row : bookData) {
+                        bookTableModel.addRow(row);
+                    }
+                });
+            } catch (SQLException ex) {
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching book data: " + ex.getMessage());
+                });
+            }
+        }
+    });
+
+    
        // Delete Book Button Action Listener
         deleteBookButton.addActionListener(new ActionListener() {
             @Override
@@ -196,6 +242,25 @@ public class LibrarianUI extends JFrame {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error deleting book: " + ex.getMessage());
                     }
                 }
+
+                 // Update Book Table After Changes
+                try {
+                    DatabaseManager dbManager = new DatabaseManager();
+                    Object[][] bookData = dbManager.getBookData();
+
+                    // Clear existing data
+                    SwingUtilities.invokeLater(() -> {
+                        bookTableModel.setRowCount(0);
+
+                        for (Object[] row : bookData) {
+                            bookTableModel.addRow(row);
+                        }
+                    });
+                } catch (SQLException ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching book data: " + ex.getMessage());
+                    });
+                }
             }
         });
 
@@ -203,17 +268,27 @@ public class LibrarianUI extends JFrame {
         JPanel userManagementPanel = new JPanel(new BorderLayout());
         userManagementPanel.add(new JLabel("User Management"), BorderLayout.NORTH);
 
+
         // User Table
-        String[] userColumns = {"ID", "Name", "Email", "Phone", "Address", "Membership Date"};
-        Object[][] userData = {}; // Replace with actual data
-        JTable userTable = new JTable(userData, userColumns);
+        String[] userColumns = {"ID", "Name", "Email", "Phone", "Address", "Membership Date", "Password"};
+        DefaultTableModel userTableModel = new DefaultTableModel(userColumns, 0){
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        JTable userTable = new JTable(userTableModel);
         JScrollPane userScrollPane = new JScrollPane(userTable);
         userManagementPanel.add(userScrollPane, BorderLayout.CENTER);
 
         // User Management Buttons
         JPanel userButtonPanel = new JPanel();
+        JButton addUserButton = new JButton("Add User");
         JButton editUserButton = new JButton("Edit User");
+        JButton deleteUserButton = new JButton("Delete User");
+        userButtonPanel.add(addUserButton); // Add the new button here
         userButtonPanel.add(editUserButton);
+        userButtonPanel.add(deleteUserButton); // Add the new button here
         userManagementPanel.add(userButtonPanel, BorderLayout.SOUTH);
 
         tabbedPane.addTab("User Management", userManagementPanel);
@@ -242,17 +317,224 @@ public class LibrarianUI extends JFrame {
             }
         });
 
+
+        // Add User Button Action Listener
+        addUserButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JTextField nameField = new JTextField(20);
+                JTextField emailField = new JTextField(20);
+                JTextField phoneField = new JTextField(20);
+                JTextField addressField = new JTextField(20);
+                JTextField passwordField = new JTextField(20);
+
+                JPanel panel = new JPanel(new GridLayout(0, 2));
+                panel.add(new JLabel("Name:"));
+                panel.add(nameField);
+                panel.add(new JLabel("Email:"));
+                panel.add(emailField);
+                panel.add(new JLabel("Phone:"));
+                panel.add(phoneField);
+                panel.add(new JLabel("Address:"));
+                panel.add(addressField);
+                panel.add(new JLabel("Password:"));
+                panel.add(passwordField);
+
+                int result = JOptionPane.showConfirmDialog(null, panel, "Add User", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                if (result == JOptionPane.OK_OPTION) {
+                    try {
+                        String insertUserQuery = "INSERT INTO Members (Name, Email, Phone, Address) VALUES (?, ?, ?, ?)";
+                        String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
+                        DatabaseManager dbManager = new DatabaseManager();
+                        dbManager.executeUpdate(insertUserQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText());
+                        dbManager.executeUpdate(insertPasswordQuery, passwordField.getText());
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "User added successfully.");
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding user: " + ex.getMessage());
+                    }
+                }
+
+                // Update User data after changes pushed
+                try {
+                    DatabaseManager dbManager = new DatabaseManager();
+                    Object[][] userData = dbManager.getUserData();
+
+                    // Clear existing data
+                    SwingUtilities.invokeLater(() -> {
+                        userTableModel.setRowCount(0);
+
+                        for (Object[] row : userData) {
+                            userTableModel.addRow(row);
+                        }
+                    });
+                } catch (SQLException ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching user data: " + ex.getMessage());
+                    });
+                }
+            }
+        });
+
+
+        // Delete User Button Action Listener
+        deleteUserButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedRow = userTable.getSelectedRow();
+                if (selectedRow == -1) {
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a user to delete.");
+                    return;
+                }
+
+                String userId = userTable.getValueAt(selectedRow, 0).toString();
+                int result = JOptionPane.showConfirmDialog(LibrarianUI.this, "Are you sure you want to delete this user?", "Delete User", JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_OPTION) {
+                    try {
+                        String returnBooksQuery = "UPDATE Transactions SET Status = 'Returned', ReturnDate = NOW() WHERE MemberID = ? AND Status = 'Borrowed'";
+                        String deleteUserQuery = "DELETE FROM Members WHERE MemberID = ?";
+                        String deletePasswordQuery = "DELETE FROM MemberPasswords WHERE MemberID = ?";
+                        DatabaseManager dbManager = new DatabaseManager();
+                        dbManager.executeUpdate(returnBooksQuery, Integer.parseInt(userId));
+                        dbManager.executeUpdate(deleteUserQuery, Integer.parseInt(userId));
+                        dbManager.executeUpdate(deletePasswordQuery, Integer.parseInt(userId));
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "User deleted successfully.");
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error deleting user: " + ex.getMessage());
+                    }
+                }
+
+                // Update User data after changes pushed
+                try {
+                    DatabaseManager dbManager = new DatabaseManager();
+                    Object[][] userData = dbManager.getUserData();
+
+                    // Clear existing data
+                    SwingUtilities.invokeLater(() -> {
+                        userTableModel.setRowCount(0);
+
+                        for (Object[] row : userData) {
+                            userTableModel.addRow(row);
+                        }
+                    });
+                } catch (SQLException ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching user data: " + ex.getMessage());
+                    });
+                }
+            }
+        });
+
         
         // Edit User Button Action Listener
         editUserButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // Implement edit user functionality
-                JOptionPane.showMessageDialog(LibrarianUI.this, "Edit User functionality to be implemented.");
-            }
-        });
-    }
+                int selectedRow = userTable.getSelectedRow();
+                if (selectedRow == -1) {
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a user to edit.");
+                    return;
+                }
 
+                String userId = userTable.getValueAt(selectedRow, 0).toString();
+                JTextField nameField = new JTextField(userTable.getValueAt(selectedRow, 1).toString(), 20);
+                JTextField emailField = new JTextField(userTable.getValueAt(selectedRow, 2).toString(), 20);
+                JTextField phoneField = new JTextField(userTable.getValueAt(selectedRow, 3).toString(), 20);
+                JTextField addressField = new JTextField(userTable.getValueAt(selectedRow, 4).toString(), 20);
+                JTextField passwordField = new JTextField(userTable.getValueAt(selectedRow, 6).toString(), 20);
+
+                JPanel panel = new JPanel(new GridLayout(0, 2));
+                panel.add(new JLabel("Name:"));
+                panel.add(nameField);
+                panel.add(new JLabel("Email:"));
+                panel.add(emailField);
+                panel.add(new JLabel("Phone:"));
+                panel.add(phoneField);
+                panel.add(new JLabel("Address:"));
+                panel.add(addressField);
+                panel.add(new JLabel("Password:"));
+                panel.add(passwordField);
+
+                int result = JOptionPane.showConfirmDialog(null, panel, "Edit User", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                if (result == JOptionPane.OK_OPTION) {
+                    try {
+                        String updateUserQuery = "UPDATE Members SET Name = ?, Email = ?, Phone = ?, Address = ? WHERE MemberID = ?";
+                        String updatePasswordQuery = "UPDATE MemberPasswords SET Password = ? WHERE MemberID = ?";
+                        DatabaseManager dbManager = new DatabaseManager();
+                        dbManager.executeUpdate(updateUserQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText(), Integer.parseInt(userId));
+                        dbManager.executeUpdate(updatePasswordQuery, passwordField.getText(), Integer.parseInt(userId));
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "User updated successfully.");
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating user: " + ex.getMessage());
+                    }
+                }
+
+                // Update User data after changes pushed
+                try {
+                    DatabaseManager dbManager = new DatabaseManager();
+                    Object[][] userData = dbManager.getUserData();
+
+                    // Clear existing data
+                    SwingUtilities.invokeLater(() -> {
+                        userTableModel.setRowCount(0);
+
+                        for (Object[] row : userData) {
+                            userTableModel.addRow(row);
+                        }
+                    });
+                } catch (SQLException ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching user data: " + ex.getMessage());
+                    });
+            }
+        }
+    });
+
+
+        // Set up a timer to refresh the book data periodically
+        Timer timer = new Timer(true);
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                DatabaseManager dbManager = new DatabaseManager();
+
+                try {
+                    Object[][] bookData = dbManager.getBookData();
+
+                    // Clear existing data
+                    SwingUtilities.invokeLater(() -> {
+                        bookTableModel.setRowCount(0);
+
+                        for (Object[] row : bookData) {
+                            bookTableModel.addRow(row);
+                        }
+                    });
+                } catch (SQLException ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching book data: " + ex.getMessage());
+                    });
+                }
+
+                try {
+                    Object[][] userData = dbManager.getUserData();
+
+                    // Clear existing data
+                    SwingUtilities.invokeLater(() -> {
+                        userTableModel.setRowCount(0);
+
+                        for (Object[] row : userData) {
+                            userTableModel.addRow(row);
+                        }
+                    });
+                } catch (SQLException ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching user data: " + ex.getMessage());
+                    });
+            }
+        }
+    }, 0, 30000); // Refresh every 30 seconds
+
+    
     // public static void main(String[] args) {
     //     SwingUtilities.invokeLater(new Runnable() {
     //         @Override
@@ -261,4 +543,5 @@ public class LibrarianUI extends JFrame {
     //         }
     //     });
     // }
+    }
 }
