@@ -221,48 +221,77 @@ public class LibrarianUI extends JFrame {
 
     
        // Delete Book Button Action Listener
-        deleteBookButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = bookTable.getSelectedRow();
-                if (selectedRow == -1) {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a book to delete.");
-                    return;
-                }
-
-                String ISBN = bookTable.getValueAt(selectedRow, 0).toString();
-                int result = JOptionPane.showConfirmDialog(LibrarianUI.this, "Are you sure you want to delete this book?", "Delete Book", JOptionPane.YES_NO_OPTION);
-                if (result == JOptionPane.YES_OPTION) {
-                    try {
-                        String query = "DELETE FROM Books WHERE ISBN = ?";
-                        DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(query, Integer.parseInt(ISBN));
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Book deleted successfully.");
-                    } catch (SQLException ex) {
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error deleting book: " + ex.getMessage());
+       deleteBookButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            int selectedRow = bookTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a book to delete.");
+                return;
+            }
+    
+            String ISBN = bookTable.getValueAt(selectedRow, 0).toString();
+            int result = JOptionPane.showConfirmDialog(
+                LibrarianUI.this,
+                "Are you sure you want to delete this book?",
+                "Delete Book",
+                JOptionPane.YES_NO_OPTION
+            );
+    
+            if (result == JOptionPane.YES_OPTION) {
+                String query = null;
+                try {
+                    // Attempt to delete the book
+                    query = "DELETE FROM Books WHERE ISBN = ?";
+                    DatabaseManager dbManager = new DatabaseManager();
+                    dbManager.executeUpdate(query, ISBN);
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Book deleted successfully.");
+                } catch (SQLException ex) {
+                    // Check if the error is due to a foreign key constraint
+                    boolean continueLoop = true;
+                    while (continueLoop) {
+                        Object[] options = {"Yes", "No", "Details"};
+                        int userChoice = JOptionPane.showOptionDialog(
+                            LibrarianUI.this,
+                            "Cannot delete this book because it has associated transactions.\n" +
+                            "Do you want to forcefully delete it?",
+                            "Foreign Key Constraint",
+                            JOptionPane.YES_NO_CANCEL_OPTION,
+                            JOptionPane.WARNING_MESSAGE,
+                            null,
+                            options,
+                            options[2] // Default focus on "Details"
+                        );
+    
+                        if (userChoice == 0) { // "Yes" selected
+                            try {
+                                DatabaseManager dbManager = new DatabaseManager();
+                                String cascadeQuery = "DELETE FROM Transactions WHERE ISBN = ?";
+                                dbManager.executeUpdate(cascadeQuery, ISBN); // Delete associated transactions
+                                dbManager.executeUpdate(query, ISBN); // Delete the book
+                                JOptionPane.showMessageDialog(LibrarianUI.this, "Book and its associated transactions deleted successfully.");
+                                continueLoop = false; // Exit the loop after successful deletion
+                            } catch (SQLException forceEx) {
+                                JOptionPane.showMessageDialog(LibrarianUI.this, "Error performing forced deletion: " + forceEx.getMessage());
+                                continueLoop = false; // Exit the loop as deletion failed
+                            }
+                        } else if (userChoice == 2) { // "Details" selected
+                            JOptionPane.showMessageDialog(
+                                LibrarianUI.this,
+                                "Error Details:\n" + ex.getMessage(),
+                                "Error Details",
+                                JOptionPane.INFORMATION_MESSAGE
+                            );
+                            // Loop continues; dialog is re-displayed
+                        } else { // "No" selected
+                            continueLoop = false; // Exit the loop
+                        }
                     }
                 }
-
-                 // Update Book Table After Changes
-                try {
-                    DatabaseManager dbManager = new DatabaseManager();
-                    Object[][] bookData = dbManager.getBookData();
-
-                    // Clear existing data
-                    SwingUtilities.invokeLater(() -> {
-                        bookTableModel.setRowCount(0);
-
-                        for (Object[] row : bookData) {
-                            bookTableModel.addRow(row);
-                        }
-                    });
-                } catch (SQLException ex) {
-                    SwingUtilities.invokeLater(() -> {
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching book data: " + ex.getMessage());
-                    });
-                }
             }
-        });
+        }
+    });
+    
 
         // User Management Tab
         JPanel userManagementPanel = new JPanel(new BorderLayout());
@@ -385,44 +414,58 @@ public class LibrarianUI extends JFrame {
                     JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a user to delete.");
                     return;
                 }
-
+        
                 String userId = userTable.getValueAt(selectedRow, 0).toString();
-                int result = JOptionPane.showConfirmDialog(LibrarianUI.this, "Are you sure you want to delete this user?", "Delete User", JOptionPane.YES_NO_OPTION);
+                int result = JOptionPane.showConfirmDialog(
+                    LibrarianUI.this,
+                    "Are you sure you want to delete this user?",
+                    "Delete User",
+                    JOptionPane.YES_NO_OPTION
+                );
+        
                 if (result == JOptionPane.YES_OPTION) {
                     try {
-                        String returnBooksQuery = "UPDATE Transactions SET Status = 'Returned', ReturnDate = NOW() WHERE MemberID = ? AND Status = 'Borrowed'";
-                        String deleteUserQuery = "DELETE FROM Members WHERE MemberID = ?";
+                        // Step 1: Delete the user's password record
                         String deletePasswordQuery = "DELETE FROM MemberPasswords WHERE MemberID = ?";
+                        
+                        // Step 2: Delete the user from the Members table
+                        String deleteUserQuery = "DELETE FROM Members WHERE MemberID = ?";
+                        
+                        // Initialize DatabaseManager
                         DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(returnBooksQuery, Integer.parseInt(userId));
-                        dbManager.executeUpdate(deleteUserQuery, Integer.parseInt(userId));
-                        dbManager.executeUpdate(deletePasswordQuery, Integer.parseInt(userId));
+                        
+                        // Execute deletion in the correct order
+                        dbManager.executeUpdate(deletePasswordQuery, Integer.parseInt(userId)); // Delete from MemberPasswords
+                        dbManager.executeUpdate(deleteUserQuery, Integer.parseInt(userId));    // Delete from Members
+                        
+                        // Notify the user of successful deletion
                         JOptionPane.showMessageDialog(LibrarianUI.this, "User deleted successfully.");
                     } catch (SQLException ex) {
+                        // Handle any SQL exceptions
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error deleting user: " + ex.getMessage());
                     }
-                }
-
-                // Update User data after changes pushed
-                try {
-                    DatabaseManager dbManager = new DatabaseManager();
-                    Object[][] userData = dbManager.getUserData();
-
-                    // Clear existing data
-                    SwingUtilities.invokeLater(() -> {
-                        userTableModel.setRowCount(0);
-
-                        for (Object[] row : userData) {
-                            userTableModel.addRow(row);
-                        }
-                    });
-                } catch (SQLException ex) {
-                    SwingUtilities.invokeLater(() -> {
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching user data: " + ex.getMessage());
-                    });
+        
+                    // Update User data after changes pushed
+                    try {
+                        DatabaseManager dbManager = new DatabaseManager();
+                        Object[][] userData = dbManager.getUserData();
+        
+                        // Clear existing data and update the table
+                        SwingUtilities.invokeLater(() -> {
+                            userTableModel.setRowCount(0);
+                            for (Object[] row : userData) {
+                                userTableModel.addRow(row);
+                            }
+                        });
+                    } catch (SQLException ex) {
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching user data: " + ex.getMessage());
+                        });
+                    }
                 }
             }
         });
+
 
         
         // Edit User Button Action Listener
