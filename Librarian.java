@@ -39,6 +39,59 @@ public class Librarian extends User {
             book.setYearPublished(yearPublished);
             book.setCopiesAvailable(copiesAvailable);
      }
+
+     public boolean addMember(Member member) {
+        String query = "INSERT INTO Members (Name, Address, Phone, Email) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
+            stmt.setString(1, member.getName());
+            stmt.setString(2, member.getAddress());
+            stmt.setString(3, member.getPhone());
+            stmt.setString(4, member.getEmail());
+            
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;  // Returns true if insertion is successful
+        } catch (SQLException e) {
+            System.err.println("Error adding member: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public boolean modifyMember(Member member) {
+        String query = "UPDATE Members SET Name = ?, Address = ?, Phone = ?, Email = ? WHERE MemberID = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
+            stmt.setString(1, member.getName());
+            stmt.setString(2, member.getAddress());
+            stmt.setString(3, member.getPhone());
+            stmt.setString(4, member.getEmail());
+            stmt.setInt(5, member.getId());
+            
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;  // Returns true if update is successful
+        } catch (SQLException e) {
+            System.err.println("Error modifying member: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public boolean deleteMember(int memberId) {
+        String query = "DELETE FROM Members WHERE MemberID = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            
+            stmt.setInt(1, memberId);
+            
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;  // Returns true if deletion is successful
+        } catch (SQLException e) {
+            System.err.println("Error deleting member: " + e.getMessage());
+            return false;
+        }
+    }
+    
      
      @Override
     public String getRole() {
