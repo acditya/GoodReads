@@ -1,0 +1,23 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import java.awt.*;
+
+class MemberTableCellRenderer extends DefaultTableCellRenderer {
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        Component cell = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+        Object authorizedValue = table.getValueAt(row, 7);
+        boolean isAuthorized = authorizedValue != null && (int) authorizedValue == 1;
+
+        if (!isAuthorized) {
+            cell.setBackground(Color.RED);
+            cell.setForeground(Color.WHITE);
+        } else {
+            cell.setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+            cell.setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+        }
+
+        return cell;
+    }
+}

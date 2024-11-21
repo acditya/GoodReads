@@ -23,7 +23,9 @@ CREATE TABLE Members (
     Address VARCHAR(255),
     Phone VARCHAR(20),
     Email VARCHAR(100),
-    MembershipDate DATETIME DEFAULT CURRENT_TIMESTAMP
+    MembershipDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    Authorized BOOLEAN DEFAULT FALSE,
+    Deleted BOOLEAN DEFAULT FALSE
 ) AUTO_INCREMENT = 1;
 
 CREATE TABLE MemberPasswords (
@@ -78,14 +80,14 @@ INSERT INTO StaffPasswords (StaffID, Password) VALUES
     (3, 'password3'),
     (4, 'password4');
 
-INSERT INTO Members (Name, Address, Phone, Email, MembershipDate) VALUES 
-    ('Ahmed Al Mansoori', '123 Sheikh Zayed Rd, Dubai', '+971-50-123-4567', 'ahmed.almansoori@example.ae', '2023-01-15'),
-    ('Fatima Al Rashed', '456 Corniche St, Abu Dhabi', '+971-50-234-5678', 'fatima.alrashed@example.ae', '2023-03-22'),
-    ('Layla Al Shamsi', '101 Al Qusais, Dubai', '+971-50-456-7890', 'layla.alshamsi@example.ae', '2023-07-10'),
-    ('Mariam Hussein', '202 Al Falah St, Al Ain', '+971-50-567-8901', 'mariam.hussein@example.ae', '2023-08-05'), 
-    ('Omar Khaled', '34 Al Reem Island, Abu Dhabi', '+971-52-678-2345', 'omar.khaled@example.ae', '2023-02-14'),  
-    ('Nour Al-Hassan', '56 Jumeirah St, Dubai', '+971-50-456-7891', 'nour.alhassan@example.ae', '2023-04-21'), 
-    ('Amina Al-Farsi', '45 Al Qurm, Abu Dhabi', '+971-50-234-5678', 'amina.alfarsi@example.ae', '2023-10-01');
+INSERT INTO Members (Name, Address, Phone, Email, MembershipDate, Authorized) VALUES 
+    ('Ahmed Al Mansoori', '123 Sheikh Zayed Rd, Dubai', '+971-50-123-4567', 'ahmed.almansoori@example.ae', '2023-01-15', '1'),
+    ('Fatima Al Rashed', '456 Corniche St, Abu Dhabi', '+971-50-234-5678', 'fatima.alrashed@example.ae', '2023-03-22', '1'),
+    ('Layla Al Shamsi', '101 Al Qusais, Dubai', '+971-50-456-7890', 'layla.alshamsi@example.ae', '2023-07-10', '1'),
+    ('Mariam Hussein', '202 Al Falah St, Al Ain', '+971-50-567-8901', 'mariam.hussein@example.ae', '2023-08-05', '1'), 
+    ('Omar Khaled', '34 Al Reem Island, Abu Dhabi', '+971-52-678-2345', 'omar.khaled@example.ae', '2023-02-14', '1'),  
+    ('Nour Al-Hassan', '56 Jumeirah St, Dubai', '+971-50-456-7891', 'nour.alhassan@example.ae', '2023-04-21', '1'), 
+    ('Amina Al-Farsi', '45 Al Qurm, Abu Dhabi', '+971-50-234-5678', 'amina.alfarsi@example.ae', '2023-10-01', '1');
 
 INSERT INTO MemberPasswords (MemberID, Password) VALUES
     (1, 'password1'),

@@ -76,11 +76,11 @@ public class MemberUI extends JFrame {
         try {
             // Database credentials
             String url = "jdbc:mysql://localhost:3306/GoodReads";
-            String username = "GoodReads"; // Can also use 'root'
+            String membername = "GoodReads"; // Can also use 'root'
             String password = "GoodReads";
 
             // Establish the connection
-            conn = DriverManager.getConnection(url, username, password);
+            conn = DriverManager.getConnection(url, membername, password);
             System.out.println("Database connected successfully!");
         } catch (SQLException e) {
             e.printStackTrace();

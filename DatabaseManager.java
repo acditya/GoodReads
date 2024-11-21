@@ -75,8 +75,8 @@ public class DatabaseManager {
         }
     }
 
-    public Object[][] getUserData() throws SQLException {
-        String query = "SELECT Members.MemberID, Members.Name, Members.Address, Members.Phone, Members.Email, Members.MembershipDate, MemberPasswords.Password " +
+    public Object[][] getMemberData() throws SQLException {
+        String query = "SELECT Members.MemberID, Members.Name, Members.Address, Members.Phone, Members.Email, Members.MembershipDate, MemberPasswords.Password, Members.Authorized, Members.Deleted " +
                        "FROM Members " +
                        "JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID";
         try (Connection conn = getConnection();

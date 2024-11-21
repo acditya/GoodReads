@@ -3,6 +3,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import javax.swing.JOptionPane;
+
 public class AuthService {
     protected Librarian authenticateLibrarian(String id, String password) {
         String passwordQuery = "SELECT * FROM StaffPasswords WHERE StaffID = ? AND Password = ?";
@@ -46,6 +48,14 @@ public class AuthService {
                     stmt2.setInt(1, rs.getInt("MemberID"));
                     ResultSet rs2 = stmt2.executeQuery();
                     if (rs2.next()) {
+                        if (rs2.getBoolean("Deleted")) {
+                            JOptionPane.showMessageDialog(null, "This account has been deleted, please contact a librarian to restore it.");
+                            return null;
+                        }
+                        if (!rs2.getBoolean("Authorized")) {
+                            JOptionPane.showMessageDialog(null, "This account has not been authorized yet, please wait for authorization.");
+                            return null;
+                        }
                         return new Member(rs2.getInt("MemberID"), rs2.getString("Name"), rs2.getString("Address"), rs2.getString("Phone"), rs2.getString("Email"), rs2.getString("MembershipDate"));
                     }
                 }
