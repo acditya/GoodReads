@@ -68,6 +68,7 @@ public class DatabaseManager {
                     rs.getInt("ISBN"),
                     rs.getString("Title"),
                     rs.getString("Author"),
+                    rs.getInt("TotalCopies"),
                     rs.getInt("CopiesAvailable")
                 });
             }
@@ -92,7 +93,9 @@ public class DatabaseManager {
                     rs.getString("Phone"),
                     rs.getString("Address"),
                     rs.getTimestamp("MembershipDate"),
-                    rs.getString("Password")
+                    rs.getString("Password"),
+                    rs.getInt("Authorized"),
+                    rs.getInt("Deleted")
                 });
             }
             return data.toArray(new Object[0][]);

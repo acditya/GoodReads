@@ -11,6 +11,11 @@ public class Member extends User {
         this.phone = Phone;
         this.membershipDate = MembershipDate;
     }
+
+    public int getMemberID() {
+        return id;
+    }
+
     public String getEmail() {
         return email;
     }

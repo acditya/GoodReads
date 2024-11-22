@@ -61,6 +61,16 @@ public class LibrarianUI extends JFrame {
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
+        JButton logoutButton = new JButton("Logout");
+        logoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dispose();
+                new LoginUI().setVisible(true);
+            }
+        });
+        add(logoutButton, BorderLayout.SOUTH);
+
         JTabbedPane tabbedPane = new JTabbedPane();
 
         // Book Management Tab
@@ -68,7 +78,7 @@ public class LibrarianUI extends JFrame {
         bookManagementPanel.add(new JLabel("Book Management"), BorderLayout.NORTH);
 
         // Book Table
-        String[] bookColumns = {"ID", "Title", "Author", "Total Count", "Available", "Borrowed"};
+        String[] bookColumns = {"ISBN", "Title", "Author", "Total Count", "Available", "Borrowed"};
         DefaultTableModel bookTableModel = new DefaultTableModel(bookColumns, 0){
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -106,32 +116,44 @@ public class LibrarianUI extends JFrame {
         bookSearchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String searchTerm = bookSearchField.getText();
-                String searchAttribute = (String) bookSearchComboBox.getSelectedItem();
-                try {
-                    String query = "SELECT * FROM Books WHERE " + searchAttribute + " LIKE ?";
-                    DatabaseManager dbManager = new DatabaseManager();
-                    ResultSet rs = dbManager.executeQuery(query, "%" + searchTerm + "%");
-
+            String searchTerm = bookSearchField.getText();
+            String searchAttribute = (String) bookSearchComboBox.getSelectedItem();
+            String query = "SELECT * FROM Books WHERE " + searchAttribute + " LIKE ?";
+            
+            try (Connection conn = DatabaseManager.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(query)) {
+                
+                stmt.setString(1, "%" + searchTerm + "%");
+                try (ResultSet rs = stmt.executeQuery()) {
                     // Clear existing data
                     DefaultTableModel model = (DefaultTableModel) bookTable.getModel();
                     model.setRowCount(0);
+                    
+                    if (!rs.isBeforeFirst()) { // Check if the ResultSet is empty
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "No books found with matching search conditions.");
+                        return;
+                    }
 
                     // Populate table with search results
                     while (rs.next()) {
+                        int totalCopies = rs.getInt("TotalCopies");
+                        int copiesAvailable = rs.getInt("CopiesAvailable");
                         model.addRow(new Object[]{
-                            rs.getInt("ISBN"),
-                            rs.getString("Title"),
-                            rs.getString("Author"),
-                            rs.getString("Genre"),
-                            rs.getString("Publisher"),
-                            rs.getInt("YearPublished"),
-                            rs.getInt("CopiesAvailable")
+                        rs.getInt("ISBN"),
+                        rs.getString("Title"),
+                        rs.getString("Author"),
+                        rs.getString("Genre"),
+                        rs.getString("Publisher"),
+                        rs.getInt("YearPublished"),
+                        totalCopies,
+                        copiesAvailable,
+                        totalCopies - copiesAvailable
                         });
                     }
-                } catch (SQLException ex) {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "Error searching books: " + ex.getMessage());
                 }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Error searching books: " + ex.getMessage());
+            }
             }
         });
 
@@ -339,13 +361,14 @@ public class LibrarianUI extends JFrame {
 
         // Member Table
         String[] memberColumns = {"ID", "Name", "Email", "Phone", "Address", "Membership Date", "Password", "Authorized", "Deleted"};
-        DefaultTableModel memberTableModel = new DefaultTableModel(memberColumns, 0){
+        DefaultTableModel memberTableModel = new DefaultTableModel(memberColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+            return false;
             }
         };
         JTable memberTable = new JTable(memberTableModel);
+        memberTable.getTableHeader().setReorderingAllowed(false); // Disable column reordering, for index-based column references that we make
         memberTable.setDefaultRenderer(Object.class, new MemberTableCellRenderer());
         JScrollPane memberScrollPane = new JScrollPane(memberTable);
         memberManagementPanel.add(memberScrollPane, BorderLayout.CENTER);
@@ -377,19 +400,58 @@ public class LibrarianUI extends JFrame {
         memberSearchPanel.add(memberSearchButton);
         memberManagementPanel.add(memberSearchPanel, BorderLayout.NORTH);
 
+        // To reset search, just empty search bar and press search
         // Member Search Button Action Listener
         memberSearchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String searchTerm = memberSearchField.getText();
                 String searchAttribute = (String) memberSearchComboBox.getSelectedItem();
-                // Implement search functionality for members
-                JOptionPane.showMessageDialog(LibrarianUI.this, "Search Member functionality to be implemented.");
+                if(searchAttribute.equals("ID")){
+                    searchAttribute = "MemberID";
+                } else if (searchAttribute.equals("Membership Date")){
+                    searchAttribute = "MembershipDate";
+                }
+                String searchTable = "Members";
+                if(searchAttribute.equals("Password")){
+                    searchTable = "MemberPasswords";
+                }
+                String query = "SELECT * FROM Members JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID WHERE " + searchTable + "." + searchAttribute + " LIKE ? ";
+                
+                try (Connection conn = DatabaseManager.getConnection();
+                    PreparedStatement stmt = conn.prepareStatement(query)) {
+                    
+                    stmt.setString(1, "%" + searchTerm + "%");
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        // Clear existing data
+                        DefaultTableModel model = (DefaultTableModel) memberTable.getModel();
+                        model.setRowCount(0);
+
+                        if (!rs.isBeforeFirst()) { // Check if the ResultSet is empty
+                            JOptionPane.showMessageDialog(LibrarianUI.this, "No members found with matching search conditions.");
+                            return;
+                        }
+
+                        // Populate table with search results
+                        while (rs.next()) {
+                            model.addRow(new Object[]{
+                                rs.getInt("MemberID"),
+                                rs.getString("Name"),
+                                rs.getString("Email"),
+                                rs.getString("Phone"),
+                                rs.getString("Address"),
+                                rs.getTimestamp("MembershipDate"),
+                                rs.getString("Password"),
+                                rs.getInt("Authorized"),
+                                rs.getInt("Deleted")
+                            });
+                        }
+                    }
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Error searching members: " + ex.getMessage());
+                }
             }
         });
-
-        
-
 
         // Add Member Button Action Listener
         addMemberButton.addActionListener(new ActionListener() {

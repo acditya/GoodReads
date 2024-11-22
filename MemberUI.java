@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
@@ -8,6 +10,7 @@ import java.util.ArrayList;
 public class MemberUI extends JFrame {
     private JTextField searchField;
     private JList<String> bookList;
+    private JTable userInfoTable;
     private DefaultListModel<String> bookListModel;
     private ArrayList<String> cart;
     private Connection conn;
@@ -19,15 +22,15 @@ public class MemberUI extends JFrame {
         member = member_in;
 
         setTitle("Member Dashboard");
-        setSize(600, 500);
+        setSize(800, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         cart = new ArrayList<>();
-        initializeDatabaseConnection();
 
-        JPanel panel = new JPanel(new BorderLayout());
+        JTabbedPane tabbedPane = new JTabbedPane();
 
-        // Search bar and book display
+        // Book Browsing Tab
+        JPanel bookBrowsingPanel = new JPanel(new BorderLayout());
         JPanel searchPanel = new JPanel();
         searchPanel.add(new JLabel("Search:"));
         searchField = new JTextField(20);
@@ -50,55 +53,106 @@ public class MemberUI extends JFrame {
         JButton checkoutButton = new JButton("Checkout");
         checkoutButton.addActionListener(e -> checkout());
 
-        // Transactions and borrowed books view button
-        JButton viewTransactionsButton = new JButton("View Transactions");
-        viewTransactionsButton.addActionListener(e -> viewTransactions());
-
-        // Update email and password button
-        JButton updateProfileButton = new JButton("Update Profile");
-        updateProfileButton.addActionListener(e -> updateProfile());
-
-        // Organize the layout
-        panel.add(new JLabel("Welcome Member"), BorderLayout.NORTH);
-        panel.add(searchPanel, BorderLayout.CENTER);
-        panel.add(bookScrollPane, BorderLayout.WEST);
-
         JPanel actionsPanel = new JPanel();
         actionsPanel.add(addToCartButton);
         actionsPanel.add(checkoutButton);
-        actionsPanel.add(viewTransactionsButton);
-        actionsPanel.add(updateProfileButton);
 
-        panel.add(actionsPanel, BorderLayout.SOUTH);
+        bookBrowsingPanel.add(searchPanel, BorderLayout.NORTH);
+        bookBrowsingPanel.add(bookScrollPane, BorderLayout.CENTER);
+        bookBrowsingPanel.add(actionsPanel, BorderLayout.SOUTH);
 
-        add(panel);
-    }
+        tabbedPane.addTab("Book Browsing", bookBrowsingPanel);
 
-    private void initializeDatabaseConnection() {
-        try {
-            // Database credentials
-            String url = "jdbc:mysql://localhost:3306/GoodReads";
-            String membername = "root"; // Can also use 'root'
-            String password = "GoodReads";
+        // Borrowed Book Management Tab
+        JPanel borrowedBooksPanel = new JPanel(new BorderLayout());
+        DefaultListModel<String> borrowedBooksListModel = new DefaultListModel<>();
+        JList<String> borrowedBooksList = new JList<>(borrowedBooksListModel);
+        JScrollPane borrowedBooksScrollPane = new JScrollPane(borrowedBooksList);
 
-            // Establish the connection
-            conn = DriverManager.getConnection(url, membername, password);
-            System.out.println("Database connected successfully!");
+        // Return Book button
+        JButton returnBookButton = new JButton("Return Book");
+        returnBookButton.addActionListener(e -> returnBook(borrowedBooksList, borrowedBooksListModel));
+
+        borrowedBooksPanel.add(borrowedBooksScrollPane, BorderLayout.CENTER);
+        borrowedBooksPanel.add(returnBookButton, BorderLayout.SOUTH);
+
+        tabbedPane.addTab("Borrowed Books", borrowedBooksPanel);
+
+        // User Management Panel Tab
+        JPanel userManagementPanel = new JPanel(new GridLayout(0, 2));
+        JButton changePasswordButton = new JButton("Change Password");
+        changePasswordButton.addActionListener(e -> changePassword());
+
+        JButton changeAddressButton = new JButton("Change Address");
+        changeAddressButton.addActionListener(e -> changeAddress());
+
+        JButton changeEmailButton = new JButton("Change Email");
+        changeEmailButton.addActionListener(e -> changeEmail());
+
+        userManagementPanel.add(changePasswordButton);
+        userManagementPanel.add(changeAddressButton);
+        userManagementPanel.add(changeEmailButton);
+
+        tabbedPane.addTab("User Management", userManagementPanel);
+
+        // User Info Table
+        JPanel userInfoPanel = new JPanel(new BorderLayout());
+        String[] columnNames = {"Field", "Value"};
+        Object[][] data = getUserInfo();
+        userInfoTable = new JTable(data, columnNames){
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        JScrollPane userInfoScrollPane = new JScrollPane(userInfoTable);
+
+        userInfoPanel.add(userInfoScrollPane, BorderLayout.CENTER);
+        tabbedPane.addTab("User Info", userInfoPanel);
+
+        // Add Logout Button
+        JButton logoutButton = new JButton("Logout");
+        logoutButton.addActionListener(e -> {
+            this.dispose();
+            new LoginUI().setVisible(true);
+        });
+        add(logoutButton, BorderLayout.SOUTH);
+
+        add(tabbedPane);
+        }
+
+        private Object[][] getUserInfo() {
+        String query = "SELECT Name, Email, Phone, Address, MembershipDate FROM Members WHERE MemberID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, member.getMemberID());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+            Object[][] data = {
+                {"Name", rs.getString("Name")},
+                {"Email", rs.getString("Email")},
+                {"Phone", rs.getString("Phone")},
+                {"Address", rs.getString("Address")},
+                {"Membership Date", rs.getString("MembershipDate")}
+            };
+            return data;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Database connection failed.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
+        return new Object[0][];
+        }
 
-    private void searchBooks() {
+        private void searchBooks() {
         String searchQuery = searchField.getText().toLowerCase();
         bookListModel.clear();
-        
-        String sql = "SELECT * FROM Books WHERE LOWER(Title) LIKE ? OR LOWER(Author) LIKE ? OR LOWER(Genre) LIKE ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+        String query = "SELECT * FROM Books WHERE LOWER(Title) LIKE ? OR LOWER(Author) LIKE ? OR LOWER(Genre) LIKE ? AND ISBN NOT IN (SELECT ISBN FROM Transactions WHERE MemberID = ? AND Status = 'Borrowed')";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, "%" + searchQuery + "%");
             stmt.setString(2, "%" + searchQuery + "%");
             stmt.setString(3, "%" + searchQuery + "%");
+            stmt.setInt(4, member.getMemberID());
 
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -118,6 +172,7 @@ public class MemberUI extends JFrame {
     private void addToCart() {
         String selectedBook = bookList.getSelectedValue();
         if (selectedBook != null) {
+            cart.clear(); // Clear the cart to ensure only one book at a time
             cart.add(selectedBook);
             JOptionPane.showMessageDialog(this, "Book added to cart.");
         } else {
@@ -131,8 +186,8 @@ public class MemberUI extends JFrame {
                 for (String bookDetails : cart) {
                     // Example SQL query to update book status in the database
                     String bookTitle = bookDetails.split(" by ")[0];
-                    String sql = "UPDATE Books SET CopiesAvailable = CopiesAvailable - 1 WHERE Title = ? AND CopiesAvailable > 0";
-                    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    String query = "UPDATE Books SET CopiesAvailable = CopiesAvailable - 1 WHERE Title = ? AND CopiesAvailable > 0";
+                    try (PreparedStatement stmt = conn.prepareStatement(query)) {
                         stmt.setString(1, bookTitle);
                         int rowsAffected = stmt.executeUpdate();
 
@@ -152,56 +207,115 @@ public class MemberUI extends JFrame {
         }
     }
 
-    private void viewTransactions() {
-        StringBuilder transactions = new StringBuilder("Your Transactions:\n");
-        String sql = "SELECT Books.Title, Transactions.BorrowDate, Transactions.Status " +
-                     "FROM Transactions JOIN Books ON Transactions.ISBN = Books.ISBN " +
-                     "WHERE Transactions.MemberID = ?";
+    private void returnBook(JList<String> borrowedBooksList, DefaultListModel<String> borrowedBooksListModel) {
+        String selectedBook = borrowedBooksList.getSelectedValue();
+        if (selectedBook != null) {
+            try {
+                String bookTitle = selectedBook.split(" by ")[0];
+                String query = "UPDATE Books SET CopiesAvailable = CopiesAvailable + 1 WHERE Title = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    stmt.setString(1, bookTitle);
+                    stmt.executeUpdate();
+                }
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, 1); // Replace with actual MemberID
-            ResultSet rs = stmt.executeQuery();
+                String deleteTransactionSql = "DELETE FROM Transactions WHERE ISBN = (SELECT ISBN FROM Books WHERE Title = ?) AND MemberID = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(deleteTransactionSql)) {
+                    stmt.setString(1, bookTitle);
+                    stmt.setInt(2, member.getMemberID());
+                    stmt.executeUpdate();
+                }
 
-            while (rs.next()) {
-                transactions.append(rs.getString("Title")).append(" - ")
-                            .append(rs.getString("BorrowDate")).append(" - ")
-                            .append(rs.getString("Status")).append("\n");
-            }
-
-            JOptionPane.showMessageDialog(this, transactions.toString());
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void updateProfile() {
-        String newEmail = JOptionPane.showInputDialog(this, "Enter new email:");
-        String newPassword = JOptionPane.showInputDialog(this, "Enter new password:");
-        String hashedPassword = hashPassword(newPassword);
-
-        if (newEmail != null && hashedPassword != null) {
-            String sql = "UPDATE Members SET Email = ? WHERE MemberID = ?";
-            String sqlPassword = "UPDATE MemberPasswords SET Password = ? WHERE MemberID = ?";
-
-            try (PreparedStatement stmtEmail = conn.prepareStatement(sql);
-                 PreparedStatement stmtPassword = conn.prepareStatement(sqlPassword)) {
-
-                stmtEmail.setString(1, newEmail);
-                stmtEmail.setInt(2, 1); // Replace with actual MemberID
-                stmtEmail.executeUpdate();
-
-                stmtPassword.setString(1, hashedPassword);
-                stmtPassword.setInt(2, 1); // Replace with actual MemberID
-                stmtPassword.executeUpdate();
-
-                JOptionPane.showMessageDialog(this, "Profile updated successfully.");
+                borrowedBooksListModel.removeElement(selectedBook);
+                JOptionPane.showMessageDialog(this, "Book returned successfully.");
             } catch (SQLException e) {
                 e.printStackTrace();
             }
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a book to return.");
         }
     }
 
-    private String hashPassword(String password) {
+    private void changePassword() {
+        JPasswordField passwordField = new JPasswordField();
+        int option = JOptionPane.showConfirmDialog(this, passwordField, "Enter new password:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        String newPassword = null;
+        if (option == JOptionPane.OK_OPTION) {
+            newPassword = new String(passwordField.getPassword());
+        }
+
+        if (newPassword != null && !newPassword.equals("")) {
+            String hashedPassword = hashPassword(newPassword);
+            String query = "UPDATE MemberPasswords SET Password = ? WHERE MemberID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, hashedPassword);
+                stmt.setInt(2, member.getMemberID());
+                stmt.executeUpdate();
+                JOptionPane.showMessageDialog(this, "Password updated successfully.");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Invalid password format. Please enter a valid, non-empty password.");
+        }
+    }
+
+    private void changeAddress() {
+        String newAddress = JOptionPane.showInputDialog(this, "Enter new address:");
+
+        if (newAddress != null && !newAddress.equals("")) {
+            String query = "UPDATE Members SET Address = ? WHERE MemberID = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, newAddress);
+                stmt.setInt(2, member.getMemberID());
+                stmt.executeUpdate();
+                
+                // Update the User Info Table to Reflect the Address Change
+                Object[][] newData = getUserInfo();
+                for (int i = 0; i < newData.length; i++) {
+                    for (int j = 0; j < newData[i].length; j++) {
+                        userInfoTable.setValueAt(newData[i][j], i, j);
+                    }
+                }
+
+                JOptionPane.showMessageDialog(this, "Address updated successfully.");
+            } catch (SQLException e) {
+                e.printStackTrace();
+                }
+        } else {
+            JOptionPane.showMessageDialog(this, "Invalid address format. Please enter a valid address.");
+        }
+    }
+
+    private void changeEmail() {
+        String newEmail = JOptionPane.showInputDialog(this, "Enter new email:");
+
+        if (newEmail != null && !newEmail.equals("")) {
+            if (newEmail.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                String query = "UPDATE Members SET Email = ? WHERE MemberID = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    stmt.setString(1, newEmail);
+                    stmt.setInt(2, member.getMemberID());
+                    stmt.executeUpdate();
+
+                    // Update the User Info Table to Reflect the Email Change
+                    Object[][] newData = getUserInfo();
+                    for (int i = 0; i < newData.length; i++) {
+                        for (int j = 0; j < newData[i].length; j++) {
+                            userInfoTable.setValueAt(newData[i][j], i, j);
+                        }
+                    }
+
+                    JOptionPane.showMessageDialog(this, "Email updated successfully.");
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Invalid email format. Please enter a valid email.");
+            }
+        }
+    }
+
+            private String hashPassword(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hashedBytes = md.digest(password.getBytes());
@@ -217,8 +331,8 @@ public class MemberUI extends JFrame {
 
     // public static void main(String[] args) {
     //     SwingUtilities.invokeLater(() -> {
-    //         MemberUI memberUI = new MemberUI(conn,);
-    //         memberUI.setVisible(true);
+    //         Member member = new Member(1, "Jane Doe"); // Example member
+    //         new MemberUI(member).setVisible(true);
     //     });
     // }
 }

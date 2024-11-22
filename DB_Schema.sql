@@ -75,10 +75,10 @@ INSERT INTO Staff (Name, Role, ContactInfo) VALUES
     ('Sultan Alhosani', 'Librarian', '0561234567');
 
 INSERT INTO StaffPasswords (StaffID, Password) VALUES
-    (1, '0b14d501a594442a01c6859541bcb3e8164d183d32937b851835442f69d5c94e'),
-    (2, '6cf615d5bcaac778352a8f1f3360d23f02f34ec182e259897fd6ce485d7870d4'),
-    (3, '5906ac361a137e2d286465cd6588ebb5ac3f5ae955001100bc41577c3d751764'),
-    (4, 'b97873a40f73abedd8d685a7cd5e5f85e4a9cfb83eac26886640a0813850122b');
+    (1, '0b14d501a594442a01c6859541bcb3e8164d183d32937b851835442f69d5c94e'), # password1
+    (2, '6cf615d5bcaac778352a8f1f3360d23f02f34ec182e259897fd6ce485d7870d4'), # password2
+    (3, '5906ac361a137e2d286465cd6588ebb5ac3f5ae955001100bc41577c3d751764'), # password3
+    (4, 'b97873a40f73abedd8d685a7cd5e5f85e4a9cfb83eac26886640a0813850122b'); # password4
 
 INSERT INTO Members (Name, Address, Phone, Email, MembershipDate, Authorized) VALUES 
     ('Ahmed Al Mansoori', '123 Sheikh Zayed Rd, Dubai', '+971-50-123-4567', 'ahmed.almansoori@example.ae', '2023-01-15', '1'),
@@ -90,13 +90,13 @@ INSERT INTO Members (Name, Address, Phone, Email, MembershipDate, Authorized) VA
     ('Amina Al-Farsi', '45 Al Qurm, Abu Dhabi', '+971-50-234-5678', 'amina.alfarsi@example.ae', '2023-10-01', '1');
 
 INSERT INTO MemberPasswords (MemberID, Password) VALUES
-    (1, '0b14d501a594442a01c6859541bcb3e8164d183d32937b851835442f69d5c94e'),
-    (2, '6cf615d5bcaac778352a8f1f3360d23f02f34ec182e259897fd6ce485d7870d4'),
-    (3, '5906ac361a137e2d286465cd6588ebb5ac3f5ae955001100bc41577c3d751764'),
-    (4, 'b97873a40f73abedd8d685a7cd5e5f85e4a9cfb83eac26886640a0813850122b'),
-    (5, '8b2c86ea9cf2ea4eb517fd1e06b74f399e7fec0fef92e3b482a6cf2e2b092023'),
-    (6, '598a1a400c1dfdf36974e69d7e1bc98593f2e15015eed8e9b7e47a83b31693d5'),
-    (7, '5860836e8f13fc9837539a597d4086bfc0299e54ad92148d54538b5c3feefb7c');
+    (1, '0b14d501a594442a01c6859541bcb3e8164d183d32937b851835442f69d5c94e'), # password1
+    (2, '6cf615d5bcaac778352a8f1f3360d23f02f34ec182e259897fd6ce485d7870d4'), # password2
+    (3, '5906ac361a137e2d286465cd6588ebb5ac3f5ae955001100bc41577c3d751764'), # password3
+    (4, 'b97873a40f73abedd8d685a7cd5e5f85e4a9cfb83eac26886640a0813850122b'), # password4
+    (5, '8b2c86ea9cf2ea4eb517fd1e06b74f399e7fec0fef92e3b482a6cf2e2b092023'), # password5
+    (6, '598a1a400c1dfdf36974e69d7e1bc98593f2e15015eed8e9b7e47a83b31693d5'), # password6
+    (7, '5860836e8f13fc9837539a597d4086bfc0299e54ad92148d54538b5c3feefb7c'); # password7
 
 INSERT INTO Transactions (MemberID, ISBN, BorrowDate, Status) VALUES
     (1, 2, '2024-10-26', 'Borrowed'),
