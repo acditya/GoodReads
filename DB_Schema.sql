@@ -1,7 +1,7 @@
--- -- Create the database
+-- Create the database
 -- CREATE DATABASE GoodReads;
 
--- -- Use the database
+-- Use the database
 -- USE GoodReads;
 
 -- Create the Books table
@@ -16,7 +16,7 @@ CREATE TABLE Books (
     CopiesAvailable INT DEFAULT 0
 ) AUTO_INCREMENT = 1;
 
--- Create the Members Tables
+-- Create the Members Table
 CREATE TABLE Members (
     MemberID INT PRIMARY KEY AUTO_INCREMENT,
     Name VARCHAR(255) NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE Members (
 
 CREATE TABLE MemberPasswords (
     MemberID INT PRIMARY KEY,
-    Password VARCHAR(255) NOT NULL DEFAULT 'password',
+    Password VARCHAR(255) NOT NULL,
     FOREIGN KEY (MemberID) REFERENCES Members(MemberID)
 );
 
@@ -75,10 +75,10 @@ INSERT INTO Staff (Name, Role, ContactInfo) VALUES
     ('Sultan Alhosani', 'Librarian', '0561234567');
 
 INSERT INTO StaffPasswords (StaffID, Password) VALUES
-    (1, 'password1'),
-    (2, 'password2'),
-    (3, 'password3'),
-    (4, 'password4');
+    (1, '0b14d501a594442a01c6859541bcb3e8164d183d32937b851835442f69d5c94e'),
+    (2, '6cf615d5bcaac778352a8f1f3360d23f02f34ec182e259897fd6ce485d7870d4'),
+    (3, '5906ac361a137e2d286465cd6588ebb5ac3f5ae955001100bc41577c3d751764'),
+    (4, 'b97873a40f73abedd8d685a7cd5e5f85e4a9cfb83eac26886640a0813850122b');
 
 INSERT INTO Members (Name, Address, Phone, Email, MembershipDate, Authorized) VALUES 
     ('Ahmed Al Mansoori', '123 Sheikh Zayed Rd, Dubai', '+971-50-123-4567', 'ahmed.almansoori@example.ae', '2023-01-15', '1'),
@@ -90,19 +90,18 @@ INSERT INTO Members (Name, Address, Phone, Email, MembershipDate, Authorized) VA
     ('Amina Al-Farsi', '45 Al Qurm, Abu Dhabi', '+971-50-234-5678', 'amina.alfarsi@example.ae', '2023-10-01', '1');
 
 INSERT INTO MemberPasswords (MemberID, Password) VALUES
-    (1, 'password1'),
-    (2, 'password2'),
-    (3, 'password3'),
-    (4, 'password4'),
-    (5, 'password5'),
-    (6, 'password6'),
-    (7, 'password7');
+    (1, '0b14d501a594442a01c6859541bcb3e8164d183d32937b851835442f69d5c94e'),
+    (2, '6cf615d5bcaac778352a8f1f3360d23f02f34ec182e259897fd6ce485d7870d4'),
+    (3, '5906ac361a137e2d286465cd6588ebb5ac3f5ae955001100bc41577c3d751764'),
+    (4, 'b97873a40f73abedd8d685a7cd5e5f85e4a9cfb83eac26886640a0813850122b'),
+    (5, '8b2c86ea9cf2ea4eb517fd1e06b74f399e7fec0fef92e3b482a6cf2e2b092023'),
+    (6, '598a1a400c1dfdf36974e69d7e1bc98593f2e15015eed8e9b7e47a83b31693d5'),
+    (7, '5860836e8f13fc9837539a597d4086bfc0299e54ad92148d54538b5c3feefb7c');
 
-INSERT INTO Transactions(MemberID,ISBN,BorrowDate,Status)VALUES
-    (1,2,'2024-10-26','Borrowed'),
-    (2,3,'2024-11-06','Borrowed'),
-    (3,4,'2024-5-20','Borrowed'),
-    (4,5,'2024-7-21','Borrowed'),
-    
-    (1,2,'2024-10-28','Returned'),
-    (2,3,'2024-12-10','Returned');
+INSERT INTO Transactions (MemberID, ISBN, BorrowDate, Status) VALUES
+    (1, 2, '2024-10-26', 'Borrowed'),
+    (2, 3, '2024-11-06', 'Borrowed'),
+    (3, 4, '2024-05-20', 'Borrowed'),
+    (4, 5, '2024-07-21', 'Borrowed'),
+    (1, 2, '2024-10-28', 'Returned'),
+    (2, 3, '2024-12-10', 'Returned');

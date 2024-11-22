@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
 
@@ -76,7 +78,7 @@ public class MemberUI extends JFrame {
         try {
             // Database credentials
             String url = "jdbc:mysql://localhost:3306/GoodReads";
-            String membername = "GoodReads"; // Can also use 'root'
+            String membername = "root"; // Can also use 'root'
             String password = "GoodReads";
 
             // Establish the connection
@@ -175,8 +177,9 @@ public class MemberUI extends JFrame {
     private void updateProfile() {
         String newEmail = JOptionPane.showInputDialog(this, "Enter new email:");
         String newPassword = JOptionPane.showInputDialog(this, "Enter new password:");
+        String hashedPassword = hashPassword(newPassword);
 
-        if (newEmail != null && newPassword != null) {
+        if (newEmail != null && hashedPassword != null) {
             String sql = "UPDATE Members SET Email = ? WHERE MemberID = ?";
             String sqlPassword = "UPDATE MemberPasswords SET Password = ? WHERE MemberID = ?";
 
@@ -187,7 +190,7 @@ public class MemberUI extends JFrame {
                 stmtEmail.setInt(2, 1); // Replace with actual MemberID
                 stmtEmail.executeUpdate();
 
-                stmtPassword.setString(1, newPassword);
+                stmtPassword.setString(1, hashedPassword);
                 stmtPassword.setInt(2, 1); // Replace with actual MemberID
                 stmtPassword.executeUpdate();
 
@@ -195,6 +198,20 @@ public class MemberUI extends JFrame {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private String hashPassword(String password) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hashedBytes = md.digest(password.getBytes());
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashedBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error initializing hashing algorithm", e);
         }
     }
 

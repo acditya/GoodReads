@@ -1,8 +1,11 @@
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.awt.GridLayout;
 import java.sql.SQLException;
+
 
 public class LoginUI extends JFrame {
     private JTextField memberIdField;
@@ -46,16 +49,19 @@ public class LoginUI extends JFrame {
             String password = new String(passwordField.getPassword());
             String role = roleSelector.getSelectedItem().toString().toLowerCase();
             boolean isAuthenticated = false;
-
+    
+            // Hash the password before sending it to AuthService
+            String hashedPassword = hashPassword(password);
+    
             AuthService authService = new AuthService();
             if (role.equals("librarian")) {
-                LoginUI.this.librarian = authService.authenticateLibrarian(memberId, password);
+                LoginUI.this.librarian = authService.authenticateLibrarian(memberId, hashedPassword);
                 isAuthenticated = LoginUI.this.librarian != null;
             } else { // role is member
-                LoginUI.this.member = authService.authenticateMember(memberId, password);
+                LoginUI.this.member = authService.authenticateMember(memberId, hashedPassword);
                 isAuthenticated = LoginUI.this.member != null;
             }
-
+    
             try {
                 if (isAuthenticated) {
                     if (role.equals("librarian")) {
@@ -71,6 +77,20 @@ public class LoginUI extends JFrame {
                 }
             } catch (Exception e1) {
                 JOptionPane.showMessageDialog(LoginUI.this, "An error has occurred: " + e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    
+        private String hashPassword(String password) {
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                byte[] hashedBytes = md.digest(password.getBytes());
+                StringBuilder sb = new StringBuilder();
+                for (byte b : hashedBytes) {
+                    sb.append(String.format("%02x", b));
+                }
+                return sb.toString();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("Error initializing hashing algorithm", e);
             }
         }
     }
@@ -103,11 +123,26 @@ public class LoginUI extends JFrame {
                     String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
                     DatabaseManager dbManager = new DatabaseManager();
                     dbManager.executeUpdate(insertMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText());
-                    dbManager.executeUpdate(insertPasswordQuery, new String(passwordField.getPassword()));
+                    dbManager.executeUpdate(insertPasswordQuery, hashPassword(new String(passwordField.getPassword())));
                     JOptionPane.showMessageDialog(LoginUI.this, "Sign up successful. Please wait for approval.");
                 } catch (SQLException ex) {
                     JOptionPane.showMessageDialog(LoginUI.this, "Error signing up: " + ex.getMessage());
                 }
+            }
+        }
+
+            // Hashing method to hash the password using SHA-256
+        private String hashPassword(String password) {
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                byte[] hashedBytes = md.digest(password.getBytes());
+                StringBuilder sb = new StringBuilder();
+                for (byte b : hashedBytes) {
+                    sb.append(String.format("%02x", b));
+                }
+                return sb.toString();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("Error initializing hashing algorithm", e);
             }
         }
     }

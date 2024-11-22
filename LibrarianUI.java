@@ -14,6 +14,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.mail.PasswordAuthentication;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 
 public class LibrarianUI extends JFrame {
     private Connection conn;
@@ -385,6 +388,8 @@ public class LibrarianUI extends JFrame {
             }
         });
 
+        
+
 
         // Add Member Button Action Listener
         addMemberButton.addActionListener(new ActionListener() {
@@ -415,7 +420,7 @@ public class LibrarianUI extends JFrame {
                         String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
                         DatabaseManager dbManager = new DatabaseManager();
                         dbManager.executeUpdate(insertMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText());
-                        dbManager.executeUpdate(insertPasswordQuery, passwordField.getText());
+                        dbManager.executeUpdate(insertPasswordQuery, hashPassword(passwordField.getText()));
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Member added successfully.");
                     } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding member: " + ex.getMessage());
@@ -441,6 +446,21 @@ public class LibrarianUI extends JFrame {
                     });
                 }
             }
+
+            private String hashPassword(String password) {
+                try {
+                    MessageDigest md = MessageDigest.getInstance("SHA-256");
+                    byte[] hashedBytes = md.digest(password.getBytes());
+                    StringBuilder sb = new StringBuilder();
+                    for (byte b : hashedBytes) {
+                        sb.append(String.format("%02x", b));
+                    }
+                    return sb.toString();
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException("Error initializing hashing algorithm", e);
+                }
+            }
+
         });
 
 
@@ -675,7 +695,11 @@ public class LibrarianUI extends JFrame {
                     });
             }
         }
+        
     }, 0, 30000); // Refresh every 30 seconds
+
+
+    
 
     
     // public static void main(String[] args) {
