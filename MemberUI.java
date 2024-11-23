@@ -15,8 +15,11 @@ public class MemberUI extends JFrame {
     private ArrayList<String> cart;
     private Connection conn;
     private Member member;
+    private DefaultListModel<String> cartListModel;
+    private JList<String> cartList;
 
     public MemberUI(Member member_in) {
+
         // Set Current Connection and Member
         conn = DatabaseManager.getConnection();
         member = member_in;
@@ -28,6 +31,10 @@ public class MemberUI extends JFrame {
         cart = new ArrayList<>();
 
         JTabbedPane tabbedPane = new JTabbedPane();
+
+        // Initialize cartListModel BEFORE using it
+        cartListModel = new DefaultListModel<>();
+        cartList = new JList<>(cartListModel);
 
         // Book Browsing Tab
         JPanel bookBrowsingPanel = new JPanel(new BorderLayout());
@@ -49,6 +56,13 @@ public class MemberUI extends JFrame {
         JButton addToCartButton = new JButton("Add to Cart");
         addToCartButton.addActionListener(e -> addToCart());
 
+        // Cart Display Panel
+        JScrollPane cartScrollPane = new JScrollPane(cartList); 
+        cartScrollPane.setPreferredSize(new Dimension(200, 200));
+        JPanel cartPanel = new JPanel(new BorderLayout());
+        cartPanel.add(new JLabel("Cart:"), BorderLayout.NORTH);
+        cartPanel.add(cartScrollPane, BorderLayout.CENTER);
+
         // Checkout button
         JButton checkoutButton = new JButton("Checkout");
         checkoutButton.addActionListener(e -> checkout());
@@ -57,8 +71,14 @@ public class MemberUI extends JFrame {
         actionsPanel.add(addToCartButton);
         actionsPanel.add(checkoutButton);
 
+        // Split pane to include book list and cart display
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setLeftComponent(bookScrollPane);
+        splitPane.setRightComponent(cartPanel);
+        splitPane.setResizeWeight(0.7);
+
         bookBrowsingPanel.add(searchPanel, BorderLayout.NORTH);
-        bookBrowsingPanel.add(bookScrollPane, BorderLayout.CENTER);
+        bookBrowsingPanel.add(splitPane, BorderLayout.CENTER);
         bookBrowsingPanel.add(actionsPanel, BorderLayout.SOUTH);
 
         tabbedPane.addTab("Book Browsing", bookBrowsingPanel);
@@ -120,7 +140,26 @@ public class MemberUI extends JFrame {
         add(logoutButton, BorderLayout.SOUTH);
 
         add(tabbedPane);
+
+        // Cart Display Panel
+        DefaultListModel<String> cartListModel = new DefaultListModel<>();
+        JList<String> cartList = new JList<>(cartListModel);
+        cartScrollPane.setPreferredSize(new Dimension(200, 200));
+        cartPanel.add(new JLabel("Cart:"), BorderLayout.NORTH);
+        cartPanel.add(cartScrollPane, BorderLayout.CENTER);
+
+        // Adding the cart panel to the bookBrowsingPanel
+        splitPane.setLeftComponent(bookScrollPane);
+        splitPane.setRightComponent(cartPanel);
+        splitPane.setResizeWeight(0.7);
+
+        bookBrowsingPanel.add(splitPane, BorderLayout.CENTER);
+
         }
+
+        
+
+        
 
         private Object[][] getUserInfo() {
         String query = "SELECT Name, Email, Phone, Address, MembershipDate FROM Members WHERE MemberID = ?";
@@ -169,22 +208,11 @@ public class MemberUI extends JFrame {
         }
     }
 
-    private void addToCart() {
-        String selectedBook = bookList.getSelectedValue();
-        if (selectedBook != null) {
-            cart.clear(); // Clear the cart to ensure only one book at a time
-            cart.add(selectedBook);
-            JOptionPane.showMessageDialog(this, "Book added to cart.");
-        } else {
-            JOptionPane.showMessageDialog(this, "Please select a book to add to cart.");
-        }
-    }
-
+    // Updating the checkout method to clear the cart display
     private void checkout() {
         if (!cart.isEmpty()) {
             try {
                 for (String bookDetails : cart) {
-                    // Example SQL query to update book status in the database
                     String bookTitle = bookDetails.split(" by ")[0];
                     String query = "UPDATE Books SET CopiesAvailable = CopiesAvailable - 1 WHERE Title = ? AND CopiesAvailable > 0";
                     try (PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -199,11 +227,27 @@ public class MemberUI extends JFrame {
                     }
                 }
                 cart.clear();
+                cartListModel.clear(); // Clear the cart list model
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         } else {
             JOptionPane.showMessageDialog(this, "Your cart is empty.");
+        }
+    }
+
+    private void addToCart() {
+        String selectedBook = bookList.getSelectedValue();
+        if (selectedBook != null) {
+            if (!cart.contains(selectedBook)) {
+                cart.add(selectedBook);
+                cartListModel.addElement(selectedBook); // Update the cart list model
+                JOptionPane.showMessageDialog(this, "Book added to cart.");
+            } else {
+                JOptionPane.showMessageDialog(this, "This book is already in your cart.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a book to add to cart.");
         }
     }
 
