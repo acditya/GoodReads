@@ -216,69 +216,75 @@ public class LibrarianUI extends JFrame {
         });
 
         // Edit Book Button Action Listener
-        editBookButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = bookTable.getSelectedRow();
-                if (selectedRow == -1) {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a book to edit.");
-                    return;
-                }
+  editBookButton.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        int selectedRow = bookTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a book to edit.");
+            return;
+        }
 
-                String ISBN = bookTable.getValueAt(selectedRow, 0).toString();
-                JTextField titleField = new JTextField(bookTable.getValueAt(selectedRow, 1).toString(), 20);
-                JTextField authorField = new JTextField(bookTable.getValueAt(selectedRow, 2).toString(), 20);
-                JTextField genreField = new JTextField(bookTable.getValueAt(selectedRow, 3).toString(), 20);
-                JTextField publisherField = new JTextField(bookTable.getValueAt(selectedRow, 4).toString(), 20);
-                JTextField yearField = new JTextField(bookTable.getValueAt(selectedRow, 5).toString(), 4);
-                JTextField copiesField = new JTextField(bookTable.getValueAt(selectedRow, 6).toString(), 4);
+        // Fetch cell values with null handling
+        Object isbnObject = bookTable.getValueAt(selectedRow, 0);
+        Object titleObject = bookTable.getValueAt(selectedRow, 1);
+        Object authorObject = bookTable.getValueAt(selectedRow, 2);
+        Object totalCountObject = bookTable.getValueAt(selectedRow, 3);
+        Object availableObject = bookTable.getValueAt(selectedRow, 4);
 
-                JPanel panel = new JPanel(new GridLayout(0, 2));
-                panel.add(new JLabel("Title:"));
-                panel.add(titleField);
-                panel.add(new JLabel("Author:"));
-                panel.add(authorField);
-                panel.add(new JLabel("Genre:"));
-                panel.add(genreField);
-                panel.add(new JLabel("Publisher:"));
-                panel.add(publisherField);
-                panel.add(new JLabel("Year Published:"));
-                panel.add(yearField);
-                panel.add(new JLabel("Copies Available:"));
-                panel.add(copiesField);
+        // Default to empty strings or zeros for null values
+        String isbn = (isbnObject != null) ? isbnObject.toString() : "0";
+        String title = (titleObject != null) ? titleObject.toString() : "";
+        String author = (authorObject != null) ? authorObject.toString() : "";
+        String totalCount = (totalCountObject != null) ? totalCountObject.toString() : "0";
+        String available = (availableObject != null) ? availableObject.toString() : "0";
 
-                int result = JOptionPane.showConfirmDialog(null, panel, "Edit Book", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-                if (result == JOptionPane.OK_OPTION) {
-                    try {
-                        String query = "UPDATE Books SET Title = ?, Author = ?, Genre = ?, Publisher = ?, YearPublished = ?, CopiesAvailable = ? WHERE ISBN = ?";
-                        DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(query, titleField.getText(), authorField.getText(), genreField.getText(), publisherField.getText(), Integer.parseInt(yearField.getText()), Integer.parseInt(copiesField.getText()), Integer.parseInt(ISBN));
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Book updated successfully.");
-                    } catch (SQLException ex) {
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating book: " + ex.getMessage());
-                    }
-                }
-            
-            // Update Book Table After Changes
+        // Create text fields pre-filled with existing data
+        JTextField titleField = new JTextField(title, 20);
+        JTextField authorField = new JTextField(author, 20);
+        JTextField totalCountField = new JTextField(totalCount, 4);
+        JTextField availableField = new JTextField(available, 4);
+
+        JPanel panel = new JPanel(new GridLayout(0, 2));
+        panel.add(new JLabel("Title:"));
+        panel.add(titleField);
+        panel.add(new JLabel("Author:"));
+        panel.add(authorField);
+        panel.add(new JLabel("Total Copies:"));
+        panel.add(totalCountField);
+        panel.add(new JLabel("Available Copies:"));
+        panel.add(availableField);
+
+        int result = JOptionPane.showConfirmDialog(null, panel, "Edit Book", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
             try {
+                // Calculate borrowed copies as the difference between Total and Available
+                int totalCopies = Integer.parseInt(totalCountField.getText());
+                int availableCopies = Integer.parseInt(availableField.getText());
+                int borrowedCopies = totalCopies - availableCopies;
+
+                // Update the book in the database
+                String query = "UPDATE Books SET Title = ?, Author = ?, TotalCopies = ?, CopiesAvailable = ? WHERE ISBN = ?";
                 DatabaseManager dbManager = new DatabaseManager();
-                Object[][] bookData = dbManager.getBookData();
+                dbManager.executeUpdate(query, titleField.getText(), authorField.getText(), totalCopies, availableCopies, Integer.parseInt(isbn));
 
-                // Clear existing data
-                SwingUtilities.invokeLater(() -> {
-                    bookTableModel.setRowCount(0);
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Book updated successfully.");
 
-                    for (Object[] row : bookData) {
-                        bookTableModel.addRow(row);
-                    }
-                });
+                // Update the table row directly
+                bookTable.setValueAt(titleField.getText(), selectedRow, 1); // Update Title
+                bookTable.setValueAt(authorField.getText(), selectedRow, 2); // Update Author
+                bookTable.setValueAt(totalCopies, selectedRow, 3); // Update Total Copies
+                bookTable.setValueAt(availableCopies, selectedRow, 4); // Update Available Copies
+                bookTable.setValueAt(borrowedCopies, selectedRow, 5); // Update Borrowed Copies
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Invalid input for numeric fields: " + ex.getMessage());
             } catch (SQLException ex) {
-                SwingUtilities.invokeLater(() -> {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching book data: " + ex.getMessage());
-                });
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating book: " + ex.getMessage());
             }
         }
-    });
+    }
+});
+
 
     
        // Delete Book Button Action Listener
