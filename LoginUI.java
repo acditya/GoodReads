@@ -1,11 +1,10 @@
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.awt.GridLayout;
 import java.sql.SQLException;
-
 
 public class LoginUI extends JFrame {
     private JTextField memberIdField;
@@ -18,28 +17,70 @@ public class LoginUI extends JFrame {
         setTitle("GoodReads Library Login");
         setSize(400, 300);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null); // Center the window on screen
 
-        JPanel panel = new JPanel();
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Login"));
+        panel.setBackground(new Color(240, 248, 255)); // Light blue background
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Member ID Field
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(new JLabel("Member ID:"), gbc);
+
+        gbc.gridx = 1;
         memberIdField = new JTextField(20);
+        panel.add(memberIdField, gbc);
+
+        // Password Field
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(new JLabel("Password:"), gbc);
+
+        gbc.gridx = 1;
         passwordField = new JPasswordField(20);
+        panel.add(passwordField, gbc);
+
+        // Role Selector
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        panel.add(new JLabel("Role:"), gbc);
+
+        gbc.gridx = 1;
         roleSelector = new JComboBox<>(new String[]{"Librarian", "Member"});
-        
+        panel.add(roleSelector, gbc);
+
+        // Buttons
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        buttonPanel.setBackground(new Color(240, 248, 255)); // Same as the panel background
+
         JButton loginButton = new JButton("Login");
+        loginButton.setPreferredSize(new Dimension(100, 30));
+        loginButton.setBackground(new Color(30, 144, 255)); // Dodger blue
+        loginButton.setForeground(Color.WHITE);
+
         JButton signUpButton = new JButton("Sign Up");
+        signUpButton.setPreferredSize(new Dimension(100, 30));
+        signUpButton.setBackground(new Color(60, 179, 113)); // Medium sea green
+        signUpButton.setForeground(Color.WHITE);
 
-        panel.add(new JLabel("Member ID:"));
-        panel.add(memberIdField);
-        panel.add(new JLabel("Password:"));
-        panel.add(passwordField);
-        panel.add(new JLabel("Role:"));
-        panel.add(roleSelector);
-        panel.add(loginButton);
-        panel.add(signUpButton);
-
-        loginButton.addActionListener(new LoginAction());
-        signUpButton.addActionListener(new SignUpAction());
+        buttonPanel.add(loginButton);
+        buttonPanel.add(signUpButton);
+        panel.add(buttonPanel, gbc);
 
         add(panel);
+
+        // Button Listeners
+        loginButton.addActionListener(new LoginAction());
+        signUpButton.addActionListener(new SignUpAction());
     }
 
     private class LoginAction implements ActionListener {
@@ -49,10 +90,10 @@ public class LoginUI extends JFrame {
             String password = new String(passwordField.getPassword());
             String role = roleSelector.getSelectedItem().toString().toLowerCase();
             boolean isAuthenticated = false;
-    
+
             // Hash the password before sending it to AuthService
             String hashedPassword = hashPassword(password);
-    
+
             AuthService authService = new AuthService();
             if (role.equals("librarian")) {
                 LoginUI.this.librarian = authService.authenticateLibrarian(memberId, hashedPassword);
@@ -61,7 +102,7 @@ public class LoginUI extends JFrame {
                 LoginUI.this.member = authService.authenticateMember(memberId, hashedPassword);
                 isAuthenticated = LoginUI.this.member != null;
             }
-    
+
             try {
                 if (isAuthenticated) {
                     if (role.equals("librarian")) {
@@ -79,7 +120,7 @@ public class LoginUI extends JFrame {
                 JOptionPane.showMessageDialog(LoginUI.this, "An error has occurred: " + e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
-    
+
         private String hashPassword(String password) {
             try {
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -104,7 +145,7 @@ public class LoginUI extends JFrame {
             JTextField addressField = new JTextField(20);
             JPasswordField passwordField = new JPasswordField(20);
 
-            JPanel panel = new JPanel(new GridLayout(0, 2));
+            JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
             panel.add(new JLabel("Name:"));
             panel.add(nameField);
             panel.add(new JLabel("Email:"));
@@ -131,7 +172,6 @@ public class LoginUI extends JFrame {
             }
         }
 
-            // Hashing method to hash the password using SHA-256
         private String hashPassword(String password) {
             try {
                 MessageDigest md = MessageDigest.getInstance("SHA-256");

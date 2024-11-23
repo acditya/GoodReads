@@ -127,9 +127,13 @@ public class MemberUI extends JFrame {
         JButton changeEmailButton = new JButton("Change Email");
         changeEmailButton.addActionListener(e -> changeEmail());
 
+        JButton changePhoneNumberButton = new JButton("Change Phone Number");
+        changePhoneNumberButton.addActionListener(e -> changePhoneNumber());
+
         userManagementPanel.add(changePasswordButton);
         userManagementPanel.add(changeAddressButton);
         userManagementPanel.add(changeEmailButton);
+        userManagementPanel.add(changePhoneNumberButton); 
 
         tabbedPane.addTab("User Management", userManagementPanel);
 
@@ -486,6 +490,51 @@ public class MemberUI extends JFrame {
             }
         }
     }
+
+    private void changePhoneNumber() {
+        String newPhoneNumber = JOptionPane.showInputDialog(
+            this,
+            "Enter new phone number:\nFormat: +CountryCodeNumber (e.g., +9710501234567)",
+            "Change Phone Number",
+            JOptionPane.PLAIN_MESSAGE
+        );
+    
+        if (newPhoneNumber != null && !newPhoneNumber.isEmpty()) {
+            // Validate the phone number format
+            if (newPhoneNumber.matches("^\\+?\\d{10,15}$")) { // Regex for phone numbers with optional "+"
+                String query = "UPDATE Members SET Phone = ? WHERE MemberID = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                    stmt.setString(1, newPhoneNumber);
+                    stmt.setInt(2, member.getMemberID());
+                    stmt.executeUpdate();
+    
+                    // Update the user info table
+                    Object[][] newData = getUserInfo();
+                    for (int i = 0; i < newData.length; i++) {
+                        for (int j = 0; j < newData[i].length; j++) {
+                            userInfoTable.setValueAt(newData[i][j], i, j);
+                        }
+                    }
+    
+                    JOptionPane.showMessageDialog(this, "Phone number updated successfully.");
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "An error occurred while updating the phone number.");
+                }
+            } else {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Invalid phone number format.\nExpected format: +CountryCodeNumber (e.g., +9710501234567)",
+                    "Invalid Phone Number",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Phone number cannot be empty.");
+        }
+    }
+    
+    
 
     private String hashPassword(String password) {
         try {

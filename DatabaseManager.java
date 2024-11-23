@@ -8,7 +8,7 @@ import java.util.List;
 
 public class DatabaseManager {
     private static final String URL = "jdbc:mysql://localhost:3306/GoodReads";
-    private static final String USER = "GoodReads"; // Can also use 'root'
+    private static final String USER = "root"; // Can also use 'root'
     private static final String PASSWORD = "GoodReads";
     private static Connection connection = null;
 
@@ -57,19 +57,25 @@ public class DatabaseManager {
     }
 
     public Object[][] getBookData() throws SQLException {
-        String query = "SELECT * FROM Books";
+        String query = "SELECT ISBN, Title, Author, Genre, Publisher, YearPublished, TotalCopies, CopiesAvailable, " +
+                       "(TotalCopies - CopiesAvailable) AS Borrowed, InformationUpdateTime FROM Books";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
-
+    
             List<Object[]> data = new ArrayList<>();
             while (rs.next()) {
                 data.add(new Object[]{
                     rs.getInt("ISBN"),
                     rs.getString("Title"),
                     rs.getString("Author"),
+                    rs.getString("Genre"),
+                    rs.getString("Publisher"),
+                    rs.getInt("YearPublished"),
                     rs.getInt("TotalCopies"),
-                    rs.getInt("CopiesAvailable")
+                    rs.getInt("CopiesAvailable"),
+                    rs.getInt("Borrowed"), // Fetch the calculated Borrowed value
+                    rs.getTimestamp("InformationUpdateTime")
                 });
             }
             return data.toArray(new Object[0][]);
@@ -77,7 +83,7 @@ public class DatabaseManager {
     }
 
     public Object[][] getMemberData() throws SQLException {
-        String query = "SELECT Members.MemberID, Members.Name, Members.Address, Members.Phone, Members.Email, Members.MembershipDate, MemberPasswords.Password, Members.Authorized, Members.Deleted " +
+        String query = "SELECT Members.MemberID, Members.Name, Members.Address, Members.Phone, Members.Email, Members.MembershipDate, MemberPasswords.Password, Members.Authorized, Members.Deleted, Members.InformationUpdateTime " +
                        "FROM Members " +
                        "JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID";
         try (Connection conn = getConnection();
@@ -95,7 +101,8 @@ public class DatabaseManager {
                     rs.getTimestamp("MembershipDate"),
                     rs.getString("Password"),
                     rs.getInt("Authorized"),
-                    rs.getInt("Deleted")
+                    rs.getInt("Deleted"),
+                    rs.getTimestamp("InformationUpdateTime")
                 });
             }
             return data.toArray(new Object[0][]);

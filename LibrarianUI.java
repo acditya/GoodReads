@@ -23,8 +23,8 @@ public class LibrarianUI extends JFrame {
     private Librarian librarian;
 
     private void sendEmail(String recipientEmail, String subject, String message) {
-        final String username = "goodreads.db@gmail.com";
-        final String password = "GoodReads1234";
+        final String username = "root";
+        final String password = "GoodReads";
 
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
@@ -58,7 +58,7 @@ public class LibrarianUI extends JFrame {
         librarian = librarian_in;
 
         setTitle("Librarian Dashboard");
-        setSize(800, 600);
+        setSize(1200, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         JButton logoutButton = new JButton("Logout");
@@ -78,7 +78,7 @@ public class LibrarianUI extends JFrame {
         bookManagementPanel.add(new JLabel("Book Management"), BorderLayout.NORTH);
 
         // Book Table
-        String[] bookColumns = {"ISBN", "Title", "Author", "Total Count", "Available", "Borrowed"};
+        String[] bookColumns = {"ISBN", "Title", "Author", "Genre", "Publisher", "YearPublished", "TotalCopies", "CopiesAvailable", "Borrowed", "InformationUpdateTime"};
         DefaultTableModel bookTableModel = new DefaultTableModel(bookColumns, 0){
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -104,7 +104,9 @@ public class LibrarianUI extends JFrame {
         // Search Bar for Book Management
         JPanel bookSearchPanel = new JPanel();
         JTextField bookSearchField = new JTextField(20);
-        JComboBox<String> bookSearchComboBox = new JComboBox<>(bookColumns);
+        String[] searchColumns = {"ISBN", "Title", "Author", "Genre", "Publisher", "YearPublished", "TotalCopies", "CopiesAvailable"};
+        JComboBox<String> bookSearchComboBox = new JComboBox<>(searchColumns);
+
         JButton bookSearchButton = new JButton("Search");
         bookSearchPanel.add(new JLabel("Search by:"));
         bookSearchPanel.add(bookSearchComboBox);
@@ -114,21 +116,22 @@ public class LibrarianUI extends JFrame {
         
         // Book Search Button Action Listener
         bookSearchButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        @Override
+        public void actionPerformed(ActionEvent e) {
             String searchTerm = bookSearchField.getText();
             String searchAttribute = (String) bookSearchComboBox.getSelectedItem();
             String query = "SELECT * FROM Books WHERE " + searchAttribute + " LIKE ?";
-            
+
             try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(query)) {
-                
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+
                 stmt.setString(1, "%" + searchTerm + "%");
+
                 try (ResultSet rs = stmt.executeQuery()) {
                     // Clear existing data
                     DefaultTableModel model = (DefaultTableModel) bookTable.getModel();
                     model.setRowCount(0);
-                    
+
                     if (!rs.isBeforeFirst()) { // Check if the ResultSet is empty
                         JOptionPane.showMessageDialog(LibrarianUI.this, "No books found with matching search conditions.");
                         return;
@@ -136,26 +139,25 @@ public class LibrarianUI extends JFrame {
 
                     // Populate table with search results
                     while (rs.next()) {
-                        int totalCopies = rs.getInt("TotalCopies");
-                        int copiesAvailable = rs.getInt("CopiesAvailable");
                         model.addRow(new Object[]{
-                        rs.getInt("ISBN"),
-                        rs.getString("Title"),
-                        rs.getString("Author"),
-                        rs.getString("Genre"),
-                        rs.getString("Publisher"),
-                        rs.getInt("YearPublished"),
-                        totalCopies,
-                        copiesAvailable,
-                        totalCopies - copiesAvailable
+                            rs.getInt("ISBN"),
+                            rs.getString("Title"),
+                            rs.getString("Author"),
+                            rs.getString("Genre"),
+                            rs.getString("Publisher"),
+                            rs.getInt("YearPublished"),
+                            rs.getInt("TotalCopies"),
+                            rs.getInt("CopiesAvailable"),
+                            rs.getInt("TotalCopies") - rs.getInt("CopiesAvailable"), // Borrowed
+                            rs.getTimestamp("InformationUpdateTime")
                         });
                     }
                 }
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(LibrarianUI.this, "Error searching books: " + ex.getMessage());
             }
-            }
-        });
+        }
+        }); 
 
         // Add Book Button Action Listener
         addBookButton.addActionListener(new ActionListener() {
@@ -167,7 +169,7 @@ public class LibrarianUI extends JFrame {
                 JTextField publisherField = new JTextField(20);
                 JTextField yearField = new JTextField(4);
                 JTextField copiesField = new JTextField(4);
-
+        
                 JPanel panel = new JPanel(new GridLayout(0, 2));
                 panel.add(new JLabel("Title:"));
                 panel.add(titleField);
@@ -179,30 +181,37 @@ public class LibrarianUI extends JFrame {
                 panel.add(publisherField);
                 panel.add(new JLabel("Year Published:"));
                 panel.add(yearField);
-                panel.add(new JLabel("Copies Available:"));
+                panel.add(new JLabel("Total Copies:"));
                 panel.add(copiesField);
-
+        
                 int result = JOptionPane.showConfirmDialog(null, panel, "Add Book", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
                 if (result == JOptionPane.OK_OPTION) {
                     try {
-                        String query = "INSERT INTO Books (Title, Author, Genre, Publisher, YearPublished, CopiesAvailable) VALUES (?, ?, ?, ?, ?, ?)";
+                        String query = "INSERT INTO Books (Title, Author, Genre, Publisher, YearPublished, TotalCopies, CopiesAvailable) VALUES (?, ?, ?, ?, ?, ?, ?)";
                         DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(query, titleField.getText(), authorField.getText(), genreField.getText(), publisherField.getText(), Integer.parseInt(yearField.getText()), Integer.parseInt(copiesField.getText()));
+                        dbManager.executeUpdate(query, 
+                            titleField.getText(), 
+                            authorField.getText(), 
+                            genreField.getText(), 
+                            publisherField.getText(), 
+                            Integer.parseInt(yearField.getText()), 
+                            Integer.parseInt(copiesField.getText()), 
+                            Integer.parseInt(copiesField.getText())); // CopiesAvailable = TotalCopies initially
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Book added successfully.");
                     } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding book: " + ex.getMessage());
                     }
                 }
-
+        
                 // Update Book Table After Changes
                 try {
                     DatabaseManager dbManager = new DatabaseManager();
                     Object[][] bookData = dbManager.getBookData();
-
+        
                     // Clear existing data
                     SwingUtilities.invokeLater(() -> {
                         bookTableModel.setRowCount(0);
-
+        
                         for (Object[] row : bookData) {
                             bookTableModel.addRow(row);
                         }
@@ -216,74 +225,109 @@ public class LibrarianUI extends JFrame {
         });
 
         // Edit Book Button Action Listener
-  editBookButton.addActionListener(new ActionListener() {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        int selectedRow = bookTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a book to edit.");
-            return;
-        }
-
-        // Fetch cell values with null handling
-        Object isbnObject = bookTable.getValueAt(selectedRow, 0);
-        Object titleObject = bookTable.getValueAt(selectedRow, 1);
-        Object authorObject = bookTable.getValueAt(selectedRow, 2);
-        Object totalCountObject = bookTable.getValueAt(selectedRow, 3);
-        Object availableObject = bookTable.getValueAt(selectedRow, 4);
-
-        // Default to empty strings or zeros for null values
-        String isbn = (isbnObject != null) ? isbnObject.toString() : "0";
-        String title = (titleObject != null) ? titleObject.toString() : "";
-        String author = (authorObject != null) ? authorObject.toString() : "";
-        String totalCount = (totalCountObject != null) ? totalCountObject.toString() : "0";
-        String available = (availableObject != null) ? availableObject.toString() : "0";
-
-        // Create text fields pre-filled with existing data
-        JTextField titleField = new JTextField(title, 20);
-        JTextField authorField = new JTextField(author, 20);
-        JTextField totalCountField = new JTextField(totalCount, 4);
-        JTextField availableField = new JTextField(available, 4);
-
-        JPanel panel = new JPanel(new GridLayout(0, 2));
-        panel.add(new JLabel("Title:"));
-        panel.add(titleField);
-        panel.add(new JLabel("Author:"));
-        panel.add(authorField);
-        panel.add(new JLabel("Total Copies:"));
-        panel.add(totalCountField);
-        panel.add(new JLabel("Available Copies:"));
-        panel.add(availableField);
-
-        int result = JOptionPane.showConfirmDialog(null, panel, "Edit Book", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result == JOptionPane.OK_OPTION) {
-            try {
-                // Calculate borrowed copies as the difference between Total and Available
-                int totalCopies = Integer.parseInt(totalCountField.getText());
-                int availableCopies = Integer.parseInt(availableField.getText());
-                int borrowedCopies = totalCopies - availableCopies;
-
-                // Update the book in the database
-                String query = "UPDATE Books SET Title = ?, Author = ?, TotalCopies = ?, CopiesAvailable = ? WHERE ISBN = ?";
-                DatabaseManager dbManager = new DatabaseManager();
-                dbManager.executeUpdate(query, titleField.getText(), authorField.getText(), totalCopies, availableCopies, Integer.parseInt(isbn));
-
-                JOptionPane.showMessageDialog(LibrarianUI.this, "Book updated successfully.");
-
-                // Update the table row directly
-                bookTable.setValueAt(titleField.getText(), selectedRow, 1); // Update Title
-                bookTable.setValueAt(authorField.getText(), selectedRow, 2); // Update Author
-                bookTable.setValueAt(totalCopies, selectedRow, 3); // Update Total Copies
-                bookTable.setValueAt(availableCopies, selectedRow, 4); // Update Available Copies
-                bookTable.setValueAt(borrowedCopies, selectedRow, 5); // Update Borrowed Copies
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(LibrarianUI.this, "Invalid input for numeric fields: " + ex.getMessage());
-            } catch (SQLException ex) {
-                JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating book: " + ex.getMessage());
+        editBookButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedRow = bookTable.getSelectedRow();
+                if (selectedRow == -1) {
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a book to edit.");
+                    return;
+                }
+        
+                // Fetch cell values with null handling
+                Object isbnObject = bookTable.getValueAt(selectedRow, 0);
+                Object titleObject = bookTable.getValueAt(selectedRow, 1);
+                Object authorObject = bookTable.getValueAt(selectedRow, 2);
+                Object genreObject = bookTable.getValueAt(selectedRow, 3);
+                Object publisherObject = bookTable.getValueAt(selectedRow, 4);
+                Object yearPublishedObject = bookTable.getValueAt(selectedRow, 5);
+                Object totalCountObject = bookTable.getValueAt(selectedRow, 6);
+                Object availableObject = bookTable.getValueAt(selectedRow, 7);
+        
+                // Default to empty strings or zeros for null values
+                String isbn = (isbnObject != null) ? isbnObject.toString() : "0";
+                String title = (titleObject != null) ? titleObject.toString() : "";
+                String author = (authorObject != null) ? authorObject.toString() : "";
+                String genre = (genreObject != null) ? genreObject.toString() : "";
+                String publisher = (publisherObject != null) ? publisherObject.toString() : "";
+                String yearPublished = (yearPublishedObject != null) ? yearPublishedObject.toString() : "0";
+                String totalCount = (totalCountObject != null) ? totalCountObject.toString() : "0";
+                String available = (availableObject != null) ? availableObject.toString() : "0";
+        
+                // Create text fields pre-filled with existing data
+                JTextField isbnField = new JTextField(isbn, 20);
+                JTextField titleField = new JTextField(title, 20);
+                JTextField authorField = new JTextField(author, 20);
+                JTextField genreField = new JTextField(genre, 20);
+                JTextField publisherField = new JTextField(publisher, 20);
+                JTextField yearPublishedField = new JTextField(yearPublished, 4);
+                JTextField totalCountField = new JTextField(totalCount, 4);
+                JTextField availableField = new JTextField(available, 4);
+        
+                // Create a panel to display input fields
+                JPanel panel = new JPanel(new GridLayout(0, 2));
+                panel.add(new JLabel("ISBN:"));
+                panel.add(isbnField);
+                panel.add(new JLabel("Title:"));
+                panel.add(titleField);
+                panel.add(new JLabel("Author:"));
+                panel.add(authorField);
+                panel.add(new JLabel("Genre:"));
+                panel.add(genreField);
+                panel.add(new JLabel("Publisher:"));
+                panel.add(publisherField);
+                panel.add(new JLabel("Year Published:"));
+                panel.add(yearPublishedField);
+                panel.add(new JLabel("Total Copies:"));
+                panel.add(totalCountField);
+                panel.add(new JLabel("Available Copies:"));
+                panel.add(availableField);
+        
+                int result = JOptionPane.showConfirmDialog(null, panel, "Edit Book", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                if (result == JOptionPane.OK_OPTION) {
+                    try {
+                        int newTotalCopies = Integer.parseInt(totalCountField.getText());
+                        int newCopiesAvailable = Integer.parseInt(availableField.getText());
+        
+                        // Validation: TotalCopies cannot be less than CopiesAvailable
+                        if (newTotalCopies < newCopiesAvailable) {
+                            JOptionPane.showMessageDialog(LibrarianUI.this, "Total Copies cannot be less than Available Copies.");
+                            return;
+                        }
+        
+                        // Update the book record in the database
+                        String updateQuery = "UPDATE Books SET Title = ?, Author = ?, Genre = ?, Publisher = ?, YearPublished = ?, TotalCopies = ?, CopiesAvailable = ? WHERE ISBN = ?";
+                        DatabaseManager dbManager = new DatabaseManager();
+                        dbManager.executeUpdate(
+                            updateQuery,
+                            titleField.getText(),
+                            authorField.getText(),
+                            genreField.getText(),
+                            publisherField.getText(),
+                            Integer.parseInt(yearPublishedField.getText()),
+                            newTotalCopies,
+                            newCopiesAvailable,
+                            Integer.parseInt(isbnField.getText())
+                        );
+        
+                        JOptionPane.showMessageDialog(null, "Book updated successfully!");
+        
+                        // Refresh the table using DatabaseManager.getBookData
+                        Object[][] bookData = dbManager.getBookData();
+                        DefaultTableModel model = (DefaultTableModel) bookTable.getModel();
+                        model.setRowCount(0); // Clear existing data
+                        for (Object[] row : bookData) {
+                            model.addRow(row);
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(null, "Invalid input: " + ex.getMessage());
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(null, "Error updating book: " + ex.getMessage());
+                    }
+                }
             }
-        }
-    }
-});
+        });
+        
 
 
     
@@ -366,7 +410,7 @@ public class LibrarianUI extends JFrame {
 
 
         // Member Table
-        String[] memberColumns = {"ID", "Name", "Email", "Phone", "Address", "Membership Date", "Password", "Authorized", "Deleted"};
+        String[] memberColumns = {"ID", "Name", "Email", "Phone", "Address", "Membership Date", "Password", "Authorized", "Deleted", "InformationUpdateTime"};
         DefaultTableModel memberTableModel = new DefaultTableModel(memberColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -449,7 +493,8 @@ public class LibrarianUI extends JFrame {
                                 rs.getTimestamp("MembershipDate"),
                                 rs.getString("Password"),
                                 rs.getInt("Authorized"),
-                                rs.getInt("Deleted")
+                                rs.getInt("Deleted"),
+                                rs.getTimestamp("InformationUpdateTime"),
                             });
                         }
                     }
@@ -532,65 +577,76 @@ public class LibrarianUI extends JFrame {
         });
 
 
-        // Approve User Button Action Listener
-        approveMemberButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = memberTable.getSelectedRow();
-                if (selectedRow == -1) {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a member to approve.");
-                    return;
-                }
+// Approve User Button Action Listener
+approveMemberButton.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        int selectedRow = memberTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a member to approve.");
+            return;
+        }
 
-                String memberId = memberTable.getValueAt(selectedRow, 0).toString();
-                int authorized = (int) memberTable.getValueAt(selectedRow, 6); // Assuming the Authorized column is at index 6
-                if (authorized == 1) {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "This member is already authorized.");
-                    return;
-                }
+        // Get MemberID as a String and parse it to Integer
+        String memberIdString = memberTable.getValueAt(selectedRow, 0).toString();
+        int memberId;
+        try {
+            memberId = Integer.parseInt(memberIdString);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(LibrarianUI.this, "Invalid MemberID: " + ex.getMessage());
+            return;
+        }
 
-                int result = JOptionPane.showConfirmDialog(LibrarianUI.this, "Are you sure you want to approve this member?", "Approve Member", JOptionPane.YES_NO_OPTION);
-                if (result == JOptionPane.YES_OPTION) {
-                    try {
-                        String approveUserQuery = "UPDATE Members SET Authorized = 1 WHERE MemberID = ?";
-                        DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(approveUserQuery, Integer.parseInt(memberId));
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "User approved successfully.");
+        // Get Authorized value as a String and parse it to Integer
+        String authorizedString = memberTable.getValueAt(selectedRow, 7).toString();
+        int authorized;
+        try {
+            authorized = Integer.parseInt(authorizedString);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(LibrarianUI.this, "Invalid Authorized value: " + ex.getMessage());
+            return;
+        }
 
-                        // Send email to the user with their details
-                        String recipientEmail = memberTable.getValueAt(selectedRow, 2).toString(); // Assuming email is at index 2
-                        String subject = "Library Membership Approved";
-                        String message = "Dear " + memberTable.getValueAt(selectedRow, 1).toString() + ",\n\n" +
-                                         "Your library membership has been approved. You can now log in using the following details:\n" +
-                                         "Email: " + recipientEmail + "\n" +
-                                         "Password: " + memberTable.getValueAt(selectedRow, 6).toString() + "\n\n" +
-                                         "Best regards,\nLibrary Team";
+        if (authorized == 1) {
+            JOptionPane.showMessageDialog(LibrarianUI.this, "This member is already authorized.");
+            return;
+        }
 
-                        sendEmail(recipientEmail, subject, message);
-                        
+        int result = JOptionPane.showConfirmDialog(LibrarianUI.this, "Are you sure you want to approve this member?", "Approve Member", JOptionPane.YES_NO_OPTION);
+        if (result == JOptionPane.YES_OPTION) {
+            try {
+                String approveUserQuery = "UPDATE Members SET Authorized = 1 WHERE MemberID = ?";
+                DatabaseManager dbManager = new DatabaseManager();
+                dbManager.executeUpdate(approveUserQuery, memberId);
+                JOptionPane.showMessageDialog(LibrarianUI.this, "User approved successfully.");
 
-                        // Update Member data after changes pushed
-                        try {
-                            Object[][] memberData = dbManager.getMemberData();
-            
-                            // Clear existing data and update the table
-                            SwingUtilities.invokeLater(() -> {
-                                memberTableModel.setRowCount(0);
-                                for (Object[] row : memberData) {
-                                    memberTableModel.addRow(row);
-                                }
-                            });
-                        } catch (SQLException ex) {
-                            SwingUtilities.invokeLater(() -> {
-                                JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching member data: " + ex.getMessage());
-                            });
-                        }
-                        } catch (SQLException ex) {
-                            JOptionPane.showMessageDialog(LibrarianUI.this, "Error approving member: " + ex.getMessage());
-                        }
-                }
+                // Send email to the user with their details
+                String recipientEmail = memberTable.getValueAt(selectedRow, 2).toString(); // Assuming email is at index 2
+                String subject = "Library Membership Approved";
+                String message = "Dear " + memberTable.getValueAt(selectedRow, 1).toString() + ",\n\n" +
+                                 "Your library membership has been approved. You can now log in using the following details:\n" +
+                                 "Email: " + recipientEmail + "\n" +
+                                 "Password: [Hidden for security]\n\n" +
+                                 "Best regards,\nLibrary Team";
+
+                sendEmail(recipientEmail, subject, message);
+
+                // Update Member data after changes
+                Object[][] memberData = dbManager.getMemberData();
+                SwingUtilities.invokeLater(() -> {
+                    memberTableModel.setRowCount(0);
+                    for (Object[] row : memberData) {
+                        memberTableModel.addRow(row);
+                    }
+                });
+
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Error approving member: " + ex.getMessage());
             }
-        });
+        }
+    }
+});
+
 
 
         // Delete Member Button Action Listener
