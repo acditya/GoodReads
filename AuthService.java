@@ -31,17 +31,16 @@ public class AuthService {
         }
         return null;
     }
-
     protected Member authenticateMember(String id, String password) {
         String passwordQuery = "SELECT * FROM MemberPasswords WHERE MemberID = ? AND Password = ?";
-
+    
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(passwordQuery)) {
-
+    
             stmt.setString(1, id);
             stmt.setString(2, password);
             ResultSet rs = stmt.executeQuery();
-
+    
             if (rs.next()) {
                 String infoQuery = "SELECT * FROM Members WHERE MemberID = ?";
                 try (PreparedStatement stmt2 = conn.prepareStatement(infoQuery)) {
@@ -49,14 +48,18 @@ public class AuthService {
                     ResultSet rs2 = stmt2.executeQuery();
                     if (rs2.next()) {
                         if (rs2.getBoolean("Deleted")) {
-                            JOptionPane.showMessageDialog(null, "This account has been deleted, please contact a librarian to restore it.");
+                            JOptionPane.showMessageDialog(null, "This account has been deleted.");
                             return null;
                         }
                         if (!rs2.getBoolean("Authorized")) {
                             JOptionPane.showMessageDialog(null, "This account has not been authorized yet, please wait for authorization.");
                             return null;
                         }
-                        return new Member(rs2.getInt("MemberID"), rs2.getString("Name"), rs2.getString("Address"), rs2.getString("Phone"), rs2.getString("Email"), rs2.getString("MembershipDate"));
+    
+                        // Create a Member object and set a flag for deletion status
+                        Member member = new Member(rs2.getInt("MemberID"), rs2.getString("Name"), rs2.getString("Address"),
+                                                    rs2.getString("Phone"), rs2.getString("Email"), rs2.getString("MembershipDate"));
+                        return member;
                     }
                 }
             }
@@ -65,4 +68,5 @@ public class AuthService {
         }
         return null;
     }
+    
 }

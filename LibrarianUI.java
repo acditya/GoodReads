@@ -357,6 +357,9 @@ public class LibrarianUI extends JFrame {
                     DatabaseManager dbManager = new DatabaseManager();
                     dbManager.executeUpdate(query, ISBN);
                     JOptionPane.showMessageDialog(LibrarianUI.this, "Book deleted successfully.");
+    
+                    // Update the table after deletion
+                    refreshBookTable();
                 } catch (SQLException ex) {
                     // Check if the error is due to a foreign key constraint
                     boolean continueLoop = true;
@@ -381,6 +384,7 @@ public class LibrarianUI extends JFrame {
                                 dbManager.executeUpdate(cascadeQuery, ISBN); // Delete associated transactions
                                 dbManager.executeUpdate(query, ISBN); // Delete the book
                                 JOptionPane.showMessageDialog(LibrarianUI.this, "Book and its associated transactions deleted successfully.");
+                                refreshBookTable(); // Update the table after deletion
                                 continueLoop = false; // Exit the loop after successful deletion
                             } catch (SQLException forceEx) {
                                 JOptionPane.showMessageDialog(LibrarianUI.this, "Error performing forced deletion: " + forceEx.getMessage());
@@ -399,6 +403,26 @@ public class LibrarianUI extends JFrame {
                         }
                     }
                 }
+            }
+        }
+    
+        // Method to refresh the table
+        private void refreshBookTable() {
+            try {
+                DatabaseManager dbManager = new DatabaseManager();
+                Object[][] bookData = dbManager.getBookData(); // Fetch the latest book data
+    
+                // Clear existing data and update the table
+                SwingUtilities.invokeLater(() -> {
+                    bookTableModel.setRowCount(0); // Clear the table model
+                    for (Object[] row : bookData) {
+                        bookTableModel.addRow(row); // Add the updated rows
+                    }
+                });
+            } catch (SQLException ex) {
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching updated book data: " + ex.getMessage());
+                });
             }
         }
     });
@@ -577,11 +601,11 @@ public class LibrarianUI extends JFrame {
         });
 
 
-// Approve User Button Action Listener
-approveMemberButton.addActionListener(new ActionListener() {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        int selectedRow = memberTable.getSelectedRow();
+        // Approve User Button Action Listener
+        approveMemberButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            int selectedRow = memberTable.getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a member to approve.");
             return;
@@ -644,71 +668,79 @@ approveMemberButton.addActionListener(new ActionListener() {
                 JOptionPane.showMessageDialog(LibrarianUI.this, "Error approving member: " + ex.getMessage());
             }
         }
-    }
-});
+        }
+        });
 
 
 
-        // Delete Member Button Action Listener
-        deleteMemberButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = memberTable.getSelectedRow();
-                if (selectedRow == -1) {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a member to delete.");
+       // Delete Member Button Action Listener
+       deleteMemberButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            int selectedRow = memberTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a member to delete.");
+                return;
+            }
+    
+            String memberId = memberTable.getValueAt(selectedRow, 0).toString();
+    
+            try {
+                // Check if the member is already marked as deleted
+                String checkQuery = "SELECT Deleted FROM Members WHERE MemberID = ?";
+                DatabaseManager dbManager = new DatabaseManager();
+                boolean isDeleted = false;
+    
+                try (Connection conn = dbManager.getConnection();
+                     PreparedStatement stmt = conn.prepareStatement(checkQuery)) {
+                    stmt.setInt(1, Integer.parseInt(memberId));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            isDeleted = rs.getBoolean("Deleted");
+                        }
+                    }
+                }
+    
+                if (isDeleted) {
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "This member is already marked as deleted.");
                     return;
                 }
-        
-                String memberId = memberTable.getValueAt(selectedRow, 0).toString();
+    
+                // Confirm marking the member as deleted
                 int result = JOptionPane.showConfirmDialog(
                     LibrarianUI.this,
-                    "Are you sure you want to delete this member?",
-                    "Delete Member",
+                    "Are you sure you want to mark this member as deleted?",
+                    "Mark Member as Deleted",
                     JOptionPane.YES_NO_OPTION
                 );
-        
+    
                 if (result == JOptionPane.YES_OPTION) {
-                    try {
-                        // Step 1: Delete the member's password record
-                        String deletePasswordQuery = "DELETE FROM MemberPasswords WHERE MemberID = ?";
-                        
-                        // Step 2: Delete the member from the Members table
-                        String deleteMemberQuery = "DELETE FROM Members WHERE MemberID = ?";
-                        
-                        // Initialize DatabaseManager
-                        DatabaseManager dbManager = new DatabaseManager();
-                        
-                        // Execute deletion in the correct order
-                        dbManager.executeUpdate(deletePasswordQuery, Integer.parseInt(memberId)); // Delete from MemberPasswords
-                        dbManager.executeUpdate(deleteMemberQuery, Integer.parseInt(memberId));    // Delete from Members
-                        
-                        // Notify the member of successful deletion
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Member deleted successfully.");
-                    } catch (SQLException ex) {
-                        // Handle any SQL exceptions
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error deleting member: " + ex.getMessage());
-                    }
-        
-                    // Update Member data after changes pushed
-                    try {
-                        DatabaseManager dbManager = new DatabaseManager();
-                        Object[][] memberData = dbManager.getMemberData();
-        
-                        // Clear existing data and update the table
-                        SwingUtilities.invokeLater(() -> {
-                            memberTableModel.setRowCount(0);
-                            for (Object[] row : memberData) {
-                                memberTableModel.addRow(row);
-                            }
-                        });
-                    } catch (SQLException ex) {
-                        SwingUtilities.invokeLater(() -> {
-                            JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching member data: " + ex.getMessage());
-                        });
-                    }
+                    String updateQuery = "UPDATE Members SET Deleted = 1 WHERE MemberID = ?";
+                    dbManager.executeUpdate(updateQuery, Integer.parseInt(memberId));
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Member marked as deleted successfully.");
+    
+                    // Update Member data after changes
+                    Object[][] memberData = dbManager.getMemberData();
+    
+                    // Clear existing data and update the table
+                    SwingUtilities.invokeLater(() -> {
+                        memberTableModel.setRowCount(0);
+                        for (Object[] row : memberData) {
+                            memberTableModel.addRow(row);
+                        }
+                    });
                 }
+            } catch (SQLException ex) {
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Error processing member data: " + ex.getMessage());
+                });
             }
-        });
+        }
+    });
+    
+
+
+        
 
 
         

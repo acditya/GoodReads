@@ -114,7 +114,7 @@ public class LoginUI extends JFrame {
                     }
                     dispose();
                 } else {
-                    JOptionPane.showMessageDialog(LoginUI.this, "Invalid Credentials.");
+                    JOptionPane.showMessageDialog(LoginUI.this, "Unable To Login.");
                 }
             } catch (Exception e1) {
                 JOptionPane.showMessageDialog(LoginUI.this, "An error has occurred: " + e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);

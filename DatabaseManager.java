@@ -85,7 +85,7 @@ public class DatabaseManager {
     public Object[][] getMemberData() throws SQLException {
         String query = "SELECT Members.MemberID, Members.Name, Members.Address, Members.Phone, Members.Email, Members.MembershipDate, MemberPasswords.Password, Members.Authorized, Members.Deleted, Members.InformationUpdateTime " +
                        "FROM Members " +
-                       "JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID";
+                       "JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID ";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
@@ -108,6 +108,7 @@ public class DatabaseManager {
             return data.toArray(new Object[0][]);
         }
     }
+
 
     public static void main(String[] args) {
         try {
