@@ -329,8 +329,6 @@ public class LibrarianUI extends JFrame {
         });
         
 
-
-    
        // Delete Book Button Action Listener
        deleteBookButton.addActionListener(new ActionListener() {
         @Override
