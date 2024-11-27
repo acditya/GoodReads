@@ -1,10 +1,6 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-import javax.mail.Session;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
 import java.sql.*;
 import java.util.Properties;
 import java.util.Timer;
@@ -12,7 +8,6 @@ import java.util.TimerTask;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.mail.PasswordAuthentication;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

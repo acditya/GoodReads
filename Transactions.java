@@ -72,8 +72,8 @@ public class Transactions{
     public boolean createTransaction() {
         try (Connection conn = DatabaseManager.getConnection()) {
             // SQL query to insert a new transaction
-            String sql = "INSERT INTO Transactions (MemberID, ISBN, BorrowDate, Status) VALUES (?, ?, CURRENT_DATE, ?)";
-            PreparedStatement stmt = conn.prepareStatement(sql);
+            String query = "INSERT INTO Transactions (MemberID, ISBN, BorrowDate, Status) VALUES (?, ?, CURRENT_DATE, ?)";
+            PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setInt(1, this.MemberId);
             stmt.setInt(2, this.ISBN);
             stmt.setString(3, this.status);
