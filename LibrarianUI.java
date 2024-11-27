@@ -1,18 +1,18 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-// import javax.mail.Session;
-// import javax.mail.internet.InternetAddress;
-// import javax.mail.internet.MimeMessage;
-// import java.util.Properties;
-// import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 
 import java.sql.*;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.mail.PasswordAuthentication;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -200,8 +200,6 @@ public class LibrarianUI extends JFrame {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Book added successfully.");
                     } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding book: " + ex.getMessage());
-                    } catch (IllegalArgumentException ex1){
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding book: " + ex1.getMessage());
                     }
                 }
         
@@ -489,8 +487,10 @@ public class LibrarianUI extends JFrame {
                     searchAttribute = "MembershipDate";
                 }
                 String searchTable = "Members";
-
-                String query = "SELECT * FROM Members WHERE " + searchTable + "." + searchAttribute + " LIKE ? ";
+                if(searchAttribute.equals("Password")){
+                    searchTable = "MemberPasswords";
+                }
+                String query = "SELECT * FROM Members JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID WHERE " + searchTable + "." + searchAttribute + " LIKE ? ";
                 
                 try (Connection conn = DatabaseManager.getConnection();
                     PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -515,6 +515,7 @@ public class LibrarianUI extends JFrame {
                                 rs.getString("Phone"),
                                 rs.getString("Address"),
                                 rs.getTimestamp("MembershipDate"),
+                                rs.getString("Password"),
                                 rs.getInt("Authorized"),
                                 rs.getInt("Deleted"),
                                 rs.getTimestamp("InformationUpdateTime"),
@@ -554,20 +555,12 @@ public class LibrarianUI extends JFrame {
                     try {
                         String insertMemberQuery = "INSERT INTO Members (Name, Email, Phone, Address, Authorized) VALUES (?, ?, ?, ?, ?)";
                         String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
-
-                        String email = emailField.getText();
-                        if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
-                            throw new IllegalArgumentException("Invalid email format.");
-                        }
-
                         DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(insertMemberQuery, nameField.getText(), email, phoneField.getText(), addressField.getText(), 1);
+                        dbManager.executeUpdate(insertMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText(), 1);
                         dbManager.executeUpdate(insertPasswordQuery, hashPassword(passwordField.getText()));
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Member added successfully.");
                     } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding member: " + ex.getMessage());
-                    } catch (IllegalArgumentException ex1){
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Invalid email: " + ex1.getMessage());
                     }
                 }
 
@@ -631,7 +624,7 @@ public class LibrarianUI extends JFrame {
         }
 
         // Get Authorized value as a String and parse it to Integer
-        String authorizedString = memberTable.getValueAt(selectedRow, 6).toString();
+        String authorizedString = memberTable.getValueAt(selectedRow, 7).toString();
         int authorized;
         try {
             authorized = Integer.parseInt(authorizedString);
@@ -748,6 +741,10 @@ public class LibrarianUI extends JFrame {
     });
     
 
+
+        
+
+
         
         // Edit Member Button Action Listener
         editMemberButton.addActionListener(new ActionListener() {
@@ -765,6 +762,7 @@ public class LibrarianUI extends JFrame {
                 JTextField emailField = new JTextField(memberTable.getValueAt(selectedRow, 2).toString(), 20);
                 JTextField phoneField = new JTextField(memberTable.getValueAt(selectedRow, 3).toString(), 20);
                 JTextField addressField = new JTextField(memberTable.getValueAt(selectedRow, 4).toString(), 20);
+                JTextField passwordField = new JTextField(memberTable.getValueAt(selectedRow, 6).toString(), 20);
 
                 JPanel panel = new JPanel(new GridLayout(0, 2));
                 panel.add(new JLabel("Name:"));
@@ -775,13 +773,17 @@ public class LibrarianUI extends JFrame {
                 panel.add(phoneField);
                 panel.add(new JLabel("Address:"));
                 panel.add(addressField);
+                panel.add(new JLabel("Password:"));
+                panel.add(passwordField);
 
                 int result = JOptionPane.showConfirmDialog(null, panel, "Edit Member", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
                 if (result == JOptionPane.OK_OPTION) {
                     try {
                         String updateMemberQuery = "UPDATE Members SET Name = ?, Email = ?, Phone = ?, Address = ? WHERE MemberID = ?";
+                        String updatePasswordQuery = "UPDATE MemberPasswords SET Password = ? WHERE MemberID = ?";
                         DatabaseManager dbManager = new DatabaseManager();
                         dbManager.executeUpdate(updateMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText(), Integer.parseInt(memberId));
+                        dbManager.executeUpdate(updatePasswordQuery, passwordField.getText(), Integer.parseInt(memberId));
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Member updated successfully.");
                     } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating member: " + ex.getMessage());

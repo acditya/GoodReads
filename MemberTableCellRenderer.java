@@ -7,8 +7,8 @@ class MemberTableCellRenderer extends DefaultTableCellRenderer {
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         Component cell = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-        Object authorizedValue = table.getValueAt(row, -2);
-        Object deletedValue = table.getValueAt(row, -1);
+        Object authorizedValue = table.getValueAt(row, 6);
+        Object deletedValue = table.getValueAt(row, 7);
         boolean isAuthorized = authorizedValue != null && (int) authorizedValue == 1 && deletedValue != null && (int) deletedValue == 0;
 
         if (!isAuthorized) {

@@ -101,7 +101,6 @@ public class DatabaseManager {
                     rs.getString("Phone"),
                     rs.getString("Address"),
                     rs.getTimestamp("MembershipDate"),
-                    rs.getString("Password"),
                     rs.getInt("Authorized"),
                     rs.getInt("Deleted"),
                     rs.getTimestamp("InformationUpdateTime")
