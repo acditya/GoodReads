@@ -254,7 +254,6 @@ public class MemberUI extends JFrame {
                 bookListModel.addElement(bookDetails);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
             JOptionPane.showMessageDialog(this, "An error occurred while fetching available books.");
         }
     }
@@ -301,7 +300,6 @@ public class MemberUI extends JFrame {
                 JOptionPane.showMessageDialog(this, "No books found for the search query.");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
             JOptionPane.showMessageDialog(this, "An error occurred while searching for books.");
         }
     }
@@ -325,7 +323,7 @@ public class MemberUI extends JFrame {
                 };
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "An error occurred while fetching user info.");
         }
         return new Object[0][];
     }
@@ -356,7 +354,6 @@ public class MemberUI extends JFrame {
         }
 
     } catch (SQLException e) {
-        e.printStackTrace();
         JOptionPane.showMessageDialog(this, "An error occurred while fetching borrowed books.");
     }
 }
@@ -405,7 +402,6 @@ public class MemberUI extends JFrame {
                 fetchBorrowedBooks(borrowedBooksListModel);
 
             } catch (SQLException e) {
-                e.printStackTrace();
                 JOptionPane.showMessageDialog(this, "An error occurred while returning the book.");
             }
         } else {
@@ -430,7 +426,7 @@ public class MemberUI extends JFrame {
                 stmt.executeUpdate();
                 JOptionPane.showMessageDialog(this, "Password updated successfully.");
             } catch (SQLException e) {
-                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "An error occurred while updating the password.");
             }
         } else {
             JOptionPane.showMessageDialog(this, "Invalid password format. Please enter a valid, non-empty password.");
@@ -456,7 +452,7 @@ public class MemberUI extends JFrame {
 
                 JOptionPane.showMessageDialog(this, "Address updated successfully.");
             } catch (SQLException e) {
-                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "An error occurred while updating the address.");
             }
         } else {
             JOptionPane.showMessageDialog(this, "Invalid address format. Please enter a valid address.");
@@ -483,7 +479,7 @@ public class MemberUI extends JFrame {
 
                     JOptionPane.showMessageDialog(this, "Email updated successfully.");
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "An error occurred while updating the email.");
                 }
             } else {
                 JOptionPane.showMessageDialog(this, "Invalid email format. Please enter a valid email.");
@@ -518,7 +514,6 @@ public class MemberUI extends JFrame {
     
                     JOptionPane.showMessageDialog(this, "Phone number updated successfully.");
                 } catch (SQLException e) {
-                    e.printStackTrace();
                     JOptionPane.showMessageDialog(this, "An error occurred while updating the phone number.");
                 }
             } else {
@@ -546,8 +541,10 @@ public class MemberUI extends JFrame {
             }
             return sb.toString();
         } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error initializing hashing algorithm", e);
+            JOptionPane.showMessageDialog(this, "Error hashing password: " + e.getMessage());
         }
+
+        return null;
     }
 
     private void checkout() {
@@ -611,7 +608,6 @@ public class MemberUI extends JFrame {
                 cart.clear();
                 cartListModel.clear();
             } catch (SQLException e) {
-                e.printStackTrace();
                 JOptionPane.showMessageDialog(this, "An error occurred during checkout. Please try again.");
             }
         } else {

@@ -131,8 +131,10 @@ public class LoginUI extends JFrame {
                 }
                 return sb.toString();
             } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException("Error initializing hashing algorithm", e);
+                JOptionPane.showMessageDialog(LoginUI.this, "Error hashing password: " + e.getMessage());
             }
+
+            return null;
         }
     }
 
@@ -158,16 +160,27 @@ public class LoginUI extends JFrame {
             panel.add(passwordField);
 
             int result = JOptionPane.showConfirmDialog(null, panel, "Sign Up", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+
+
             if (result == JOptionPane.OK_OPTION) {
                 try {
                     String insertMemberQuery = "INSERT INTO Members (Name, Email, Phone, Address, Authorized) VALUES (?, ?, ?, ?, 0)";
                     String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
                     DatabaseManager dbManager = new DatabaseManager();
-                    dbManager.executeUpdate(insertMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText());
+
+                    String email = emailField.getText();
+                    if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                        throw new IllegalArgumentException("Invalid email format.");
+                    }
+
+                    dbManager.executeUpdate(insertMemberQuery, nameField.getText(), email, phoneField.getText(), addressField.getText());
                     dbManager.executeUpdate(insertPasswordQuery, hashPassword(new String(passwordField.getPassword())));
                     JOptionPane.showMessageDialog(LoginUI.this, "Sign up successful. Please wait for approval.");
                 } catch (SQLException ex) {
                     JOptionPane.showMessageDialog(LoginUI.this, "Error signing up: " + ex.getMessage());
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(LoginUI.this, ex.getMessage());
                 }
             }
         }
@@ -181,9 +194,11 @@ public class LoginUI extends JFrame {
                     sb.append(String.format("%02x", b));
                 }
                 return sb.toString();
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException("Error initializing hashing algorithm", e);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(LoginUI.this, "Error Hashing Password: " + e.getMessage());
             }
+
+            return null;
         }
     }
 

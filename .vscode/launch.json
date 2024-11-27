@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "AppLauncher",
+            "request": "launch",
+            "mainClass": "AppLauncher",
+            "projectName": "GoodReads_97d6d1e1"
+        },
+        {
+            "type": "java",
             "name": "MemberUI",
             "request": "launch",
             "mainClass": "MemberUI",

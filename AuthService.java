@@ -27,7 +27,7 @@ public class AuthService {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to authenticate.");
         }
         return null;
     }
@@ -64,7 +64,7 @@ public class AuthService {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to authenticate.");
         }
         return null;
     }

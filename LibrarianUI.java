@@ -1,18 +1,18 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-import javax.mail.Session;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+// import javax.mail.Session;
+// import javax.mail.internet.InternetAddress;
+// import javax.mail.internet.MimeMessage;
+// import java.util.Properties;
+// import javax.mail.PasswordAuthentication;
 
 import java.sql.*;
-import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.mail.PasswordAuthentication;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,35 +22,35 @@ public class LibrarianUI extends JFrame {
     private Connection conn;
     private Librarian librarian;
 
-    private void sendEmail(String recipientEmail, String subject, String message) {
-        final String username = "root";
-        final String password = "GoodReads";
+    // private void sendEmail(String recipientEmail, String subject, String message) {
+    //     final String username = "root";
+    //     final String password = "GoodReads";
 
-        Properties props = new Properties();
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
+    //     Properties props = new Properties();
+    //     props.put("mail.smtp.auth", "true");
+    //     props.put("mail.smtp.starttls.enable", "true");
+    //     props.put("mail.smtp.host", "smtp.gmail.com");
+    //     props.put("mail.smtp.port", "587");
 
-        Session session = Session.getInstance(props, new javax.mail.Authenticator() {
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(username, password);
-            }
-        });
+    //     Session session = Session.getInstance(props, new javax.mail.Authenticator() {
+    //         protected PasswordAuthentication getPasswordAuthentication() {
+    //             return new PasswordAuthentication(username, password);
+    //         }
+    //     });
 
-        try {
-            MimeMessage mimeMessage = new MimeMessage(session);
-            mimeMessage.setFrom(new InternetAddress(username));
-            mimeMessage.setRecipients(javax.mail.Message.RecipientType.TO, InternetAddress.parse(recipientEmail));
-            mimeMessage.setSubject(subject);
-            mimeMessage.setText(message);
+    //     try {
+    //         MimeMessage mimeMessage = new MimeMessage(session);
+    //         mimeMessage.setFrom(new InternetAddress(username));
+    //         mimeMessage.setRecipients(javax.mail.Message.RecipientType.TO, InternetAddress.parse(recipientEmail));
+    //         mimeMessage.setSubject(subject);
+    //         mimeMessage.setText(message);
 
-            javax.mail.Transport.send(mimeMessage);
-            JOptionPane.showMessageDialog(LibrarianUI.this, "Email sent successfully.");
-        } catch (javax.mail.MessagingException e) {
-            JOptionPane.showMessageDialog(LibrarianUI.this, "Error sending email: " + e.getMessage());
-        }
-    }
+    //         javax.mail.Transport.send(mimeMessage);
+    //         JOptionPane.showMessageDialog(LibrarianUI.this, "Email sent successfully.");
+    //     } catch (javax.mail.MessagingException e) {
+    //         JOptionPane.showMessageDialog(LibrarianUI.this, "Error sending email: " + e.getMessage());
+    //     }
+    // }
 
     public LibrarianUI(Librarian librarian_in) {
         // Set Current Connection and Librarian
@@ -200,6 +200,8 @@ public class LibrarianUI extends JFrame {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Book added successfully.");
                     } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding book: " + ex.getMessage());
+                    } catch (IllegalArgumentException ex1){
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding book: " + ex1.getMessage());
                     }
                 }
         
@@ -434,7 +436,7 @@ public class LibrarianUI extends JFrame {
 
 
         // Member Table
-        String[] memberColumns = {"ID", "Name", "Email", "Phone", "Address", "Membership Date", "Password", "Authorized", "Deleted", "InformationUpdateTime"};
+        String[] memberColumns = {"ID", "Name", "Email", "Phone", "Address", "Membership Date", "Authorized", "Deleted", "InformationUpdateTime"};
         DefaultTableModel memberTableModel = new DefaultTableModel(memberColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -487,10 +489,8 @@ public class LibrarianUI extends JFrame {
                     searchAttribute = "MembershipDate";
                 }
                 String searchTable = "Members";
-                if(searchAttribute.equals("Password")){
-                    searchTable = "MemberPasswords";
-                }
-                String query = "SELECT * FROM Members JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID WHERE " + searchTable + "." + searchAttribute + " LIKE ? ";
+
+                String query = "SELECT * FROM Members WHERE " + searchTable + "." + searchAttribute + " LIKE ? ";
                 
                 try (Connection conn = DatabaseManager.getConnection();
                     PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -515,7 +515,6 @@ public class LibrarianUI extends JFrame {
                                 rs.getString("Phone"),
                                 rs.getString("Address"),
                                 rs.getTimestamp("MembershipDate"),
-                                rs.getString("Password"),
                                 rs.getInt("Authorized"),
                                 rs.getInt("Deleted"),
                                 rs.getTimestamp("InformationUpdateTime"),
@@ -553,14 +552,22 @@ public class LibrarianUI extends JFrame {
                 int result = JOptionPane.showConfirmDialog(null, panel, "Add Member", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
                 if (result == JOptionPane.OK_OPTION) {
                     try {
-                        String insertMemberQuery = "INSERT INTO Members (Name, Email, Phone, Address) VALUES (?, ?, ?, ?)";
+                        String insertMemberQuery = "INSERT INTO Members (Name, Email, Phone, Address, Authorized) VALUES (?, ?, ?, ?, ?)";
                         String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
+
+                        String email = emailField.getText();
+                        if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                            throw new IllegalArgumentException("Invalid email format.");
+                        }
+
                         DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(insertMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText());
+                        dbManager.executeUpdate(insertMemberQuery, nameField.getText(), email, phoneField.getText(), addressField.getText(), 1);
                         dbManager.executeUpdate(insertPasswordQuery, hashPassword(passwordField.getText()));
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Member added successfully.");
                     } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding member: " + ex.getMessage());
+                    } catch (IllegalArgumentException ex1){
+                        JOptionPane.showMessageDialog(LibrarianUI.this, "Invalid email: " + ex1.getMessage());
                     }
                 }
 
@@ -593,9 +600,11 @@ public class LibrarianUI extends JFrame {
                         sb.append(String.format("%02x", b));
                     }
                     return sb.toString();
+
                 } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException("Error initializing hashing algorithm", e);
+                    JOptionPane.showMessageDialog(LibrarianUI.this, "Error hashing password: " + e.getMessage());
                 }
+                return null;
             }
 
         });
@@ -622,7 +631,7 @@ public class LibrarianUI extends JFrame {
         }
 
         // Get Authorized value as a String and parse it to Integer
-        String authorizedString = memberTable.getValueAt(selectedRow, 7).toString();
+        String authorizedString = memberTable.getValueAt(selectedRow, 6).toString();
         int authorized;
         try {
             authorized = Integer.parseInt(authorizedString);
@@ -644,16 +653,16 @@ public class LibrarianUI extends JFrame {
                 dbManager.executeUpdate(approveUserQuery, memberId);
                 JOptionPane.showMessageDialog(LibrarianUI.this, "User approved successfully.");
 
-                // Send email to the user with their details
-                String recipientEmail = memberTable.getValueAt(selectedRow, 2).toString(); // Assuming email is at index 2
-                String subject = "Library Membership Approved";
-                String message = "Dear " + memberTable.getValueAt(selectedRow, 1).toString() + ",\n\n" +
-                                 "Your library membership has been approved. You can now log in using the following details:\n" +
-                                 "Email: " + recipientEmail + "\n" +
-                                 "Password: [Hidden for security]\n\n" +
-                                 "Best regards,\nLibrary Team";
+                // // Send email to the user with their details
+                // String recipientEmail = memberTable.getValueAt(selectedRow, 2).toString(); // Assuming email is at index 2
+                // String subject = "Library Membership Approved";
+                // String message = "Dear " + memberTable.getValueAt(selectedRow, 1).toString() + ",\n\n" +
+                //                  "Your library membership has been approved. You can now log in using the following details:\n" +
+                //                  "Email: " + recipientEmail + "\n" +
+                //                  "Password: [Hidden for security]\n\n" +
+                //                  "Best regards,\nLibrary Team";
 
-                sendEmail(recipientEmail, subject, message);
+                // sendEmail(recipientEmail, subject, message);
 
                 // Update Member data after changes
                 Object[][] memberData = dbManager.getMemberData();
@@ -739,10 +748,6 @@ public class LibrarianUI extends JFrame {
     });
     
 
-
-        
-
-
         
         // Edit Member Button Action Listener
         editMemberButton.addActionListener(new ActionListener() {
@@ -760,7 +765,6 @@ public class LibrarianUI extends JFrame {
                 JTextField emailField = new JTextField(memberTable.getValueAt(selectedRow, 2).toString(), 20);
                 JTextField phoneField = new JTextField(memberTable.getValueAt(selectedRow, 3).toString(), 20);
                 JTextField addressField = new JTextField(memberTable.getValueAt(selectedRow, 4).toString(), 20);
-                JTextField passwordField = new JTextField(memberTable.getValueAt(selectedRow, 6).toString(), 20);
 
                 JPanel panel = new JPanel(new GridLayout(0, 2));
                 panel.add(new JLabel("Name:"));
@@ -771,17 +775,13 @@ public class LibrarianUI extends JFrame {
                 panel.add(phoneField);
                 panel.add(new JLabel("Address:"));
                 panel.add(addressField);
-                panel.add(new JLabel("Password:"));
-                panel.add(passwordField);
 
                 int result = JOptionPane.showConfirmDialog(null, panel, "Edit Member", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
                 if (result == JOptionPane.OK_OPTION) {
                     try {
                         String updateMemberQuery = "UPDATE Members SET Name = ?, Email = ?, Phone = ?, Address = ? WHERE MemberID = ?";
-                        String updatePasswordQuery = "UPDATE MemberPasswords SET Password = ? WHERE MemberID = ?";
                         DatabaseManager dbManager = new DatabaseManager();
                         dbManager.executeUpdate(updateMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText(), Integer.parseInt(memberId));
-                        dbManager.executeUpdate(updatePasswordQuery, passwordField.getText(), Integer.parseInt(memberId));
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Member updated successfully.");
                     } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating member: " + ex.getMessage());

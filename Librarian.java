@@ -3,6 +3,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import javax.swing.JOptionPane;
+
 public class Librarian extends User {
     public Librarian(int id, String name) {
         super(id, name);
@@ -24,7 +26,7 @@ public class Librarian extends User {
             preparedStatement.executeUpdate();
             }
         catch (SQLException e) {
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to add a book.");
             }
      }
      
@@ -53,7 +55,7 @@ public class Librarian extends User {
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;  // Returns true if insertion is successful
         } catch (SQLException e) {
-            System.err.println("Error adding member: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to add a member.");
             return false;
         }
     }
@@ -72,7 +74,7 @@ public class Librarian extends User {
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;  // Returns true if update is successful
         } catch (SQLException e) {
-            System.err.println("Error modifying member: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to modify a member.");
             return false;
         }
     }
@@ -87,7 +89,7 @@ public class Librarian extends User {
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;  // Returns true if deletion is successful
         } catch (SQLException e) {
-            System.err.println("Error deleting member: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to delete a member.");
             return false;
         }
     }

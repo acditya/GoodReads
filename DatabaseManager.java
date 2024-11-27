@@ -6,6 +6,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.JOptionPane;
+
 public class DatabaseManager {
     private static final String URL = "jdbc:mysql://localhost:3306/GoodReads";
     private static final String USER = "root"; // Can also use 'root'
@@ -15,9 +17,9 @@ public class DatabaseManager {
     static {
         try {
             connection = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("Database connected successfully.");
+            JOptionPane.showMessageDialog(null, "Connected to the database.");
         } catch (SQLException e) {
-            System.err.println("Database connection failed: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to connect to the database.");
         }
     }
 
@@ -33,7 +35,7 @@ public class DatabaseManager {
                 return connection;
             }
         } catch (SQLException e) {
-            System.err.println("Error during connection check: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to connect to the database.");
             return null;
         }
     }
@@ -110,16 +112,16 @@ public class DatabaseManager {
     }
 
 
-    public static void main(String[] args) {
-        try {
-            Connection conn = DatabaseManager.getConnection();
-            if (conn != null) {
-                System.out.println("Connection is valid: " + conn.isValid(2));
-            } else {
-                System.out.println("Failed to make connection!");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error during connection validation: " + e.getMessage());
-        }
-    }
+    // public static void main(String[] args) {
+    //     try {
+    //         Connection conn = DatabaseManager.getConnection();
+    //         if (conn != null) {
+    //             JOptionPane.showMessageDialog(null, "Connection is valid.");
+    //         } else {
+    //             JOptionPane.showMessageDialog(null, "Connection is null.");
+    //         }
+    //     } catch (SQLException e) {
+    //         JOptionPane.showMessageDialog(null, "An error occurred while trying to connect to the database.");
+    //     }
+    // }
 }

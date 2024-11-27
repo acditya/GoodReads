@@ -2,6 +2,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import javax.swing.JOptionPane;
+
 public class Transactions{
 
     private int MemberId;
@@ -79,7 +81,7 @@ public class Transactions{
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0; // Return true if the transaction was successfully created
         } catch (SQLException e) {
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "An error occurred while trying to create a transaction.");
             return false; // Return false if an error occurred
         }
     }
