@@ -21,7 +21,9 @@ public class MemberUI extends JFrame {
     private Timer refreshTimer;
     private String lastSearchQuery = ""; // Stores the last search text
     private String lastSearchFilter = "Title"; // Stores the last selected filter (default to "Title")
-
+    private static final String URL = "jdbc:mysql://localhost:3306/GoodReads";
+    private static final String USER = "root"; // Can also use 'root'
+    private static final String PASSWORD = "GoodReads";
 
 
     public MemberUI(Member member_in) {
@@ -117,23 +119,39 @@ public class MemberUI extends JFrame {
         
 
         // User Management Panel Tab
-        JPanel userManagementPanel = new JPanel(new GridLayout(0, 2));
+        JPanel userManagementPanel = new JPanel();
+        userManagementPanel.setLayout(new BoxLayout(userManagementPanel, BoxLayout.Y_AXIS));
+        userManagementPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
         JButton changePasswordButton = new JButton("Change Password");
+        changePasswordButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        changePasswordButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, changePasswordButton.getMinimumSize().height));
         changePasswordButton.addActionListener(e -> changePassword());
 
         JButton changeAddressButton = new JButton("Change Address");
+        changeAddressButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        changeAddressButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, changeAddressButton.getMinimumSize().height));
         changeAddressButton.addActionListener(e -> changeAddress());
 
         JButton changeEmailButton = new JButton("Change Email");
+        changeEmailButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        changeEmailButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, changeEmailButton.getMinimumSize().height));
         changeEmailButton.addActionListener(e -> changeEmail());
 
         JButton changePhoneNumberButton = new JButton("Change Phone Number");
+        changePhoneNumberButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        changePhoneNumberButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, changePhoneNumberButton.getMinimumSize().height));
         changePhoneNumberButton.addActionListener(e -> changePhoneNumber());
 
+        userManagementPanel.add(Box.createVerticalGlue());
         userManagementPanel.add(changePasswordButton);
+        userManagementPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         userManagementPanel.add(changeAddressButton);
+        userManagementPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         userManagementPanel.add(changeEmailButton);
-        userManagementPanel.add(changePhoneNumberButton); 
+        userManagementPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        userManagementPanel.add(changePhoneNumberButton);
+        userManagementPanel.add(Box.createVerticalGlue());
 
         tabbedPane.addTab("User Management", userManagementPanel);
 
@@ -235,29 +253,37 @@ public class MemberUI extends JFrame {
     
         String query = "SELECT Title, Author, Genre, YearPublished, CopiesAvailable FROM Books " +
                 "WHERE LOWER(" + columnName + ") LIKE ? AND CopiesAvailable > 0";
+                
     
-        try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, "%" + lastSearchQuery + "%"); // Use LIKE for all filters, including YearPublished
+        try {
+            if (conn == null || conn.isClosed()) {
+                // Reopen the connection if it is closed
+                conn = DriverManager.getConnection(URL, USER, PASSWORD);
+            }
     
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                String title = rs.getString("Title");
-                String author = rs.getString("Author");
-                String genre = rs.getString("Genre");
-                int yearPublished = rs.getInt("YearPublished");
-                int copiesAvailable = rs.getInt("CopiesAvailable");
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, "%" + lastSearchQuery + "%"); // Use LIKE for all filters, including YearPublished
     
-                String bookDetails = title + " by " + author + " - Genre: " + genre + " - Year: " + yearPublished;
-                if (copiesAvailable < 2) {
-                    bookDetails += " (LOW STOCK)";
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String title = rs.getString("Title");
+                    String author = rs.getString("Author");
+                    String genre = rs.getString("Genre");
+                    int yearPublished = rs.getInt("YearPublished");
+                    int copiesAvailable = rs.getInt("CopiesAvailable");
+    
+                    String bookDetails = title + " by " + author + " - Genre: " + genre + " - Year: " + yearPublished;
+                    if (copiesAvailable < 2) {
+                        bookDetails += " (LOW STOCK)";
+                    }
+                    bookListModel.addElement(bookDetails);
                 }
-                bookListModel.addElement(bookDetails);
             }
         } catch (SQLException e) {
+            e.printStackTrace();
             JOptionPane.showMessageDialog(this, "An error occurred while fetching available books.");
         }
     }
-    
     
     
     private void searchBooks() {
@@ -460,30 +486,38 @@ public class MemberUI extends JFrame {
     }
 
     private void changeEmail() {
+        // Prompt user for new email
         String newEmail = JOptionPane.showInputDialog(this, "Enter new email:");
-
-        if (newEmail != null && !newEmail.equals("")) {
-            if (newEmail.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
-                String query = "UPDATE Members SET Email = ? WHERE MemberID = ?";
-                try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                    stmt.setString(1, newEmail);
-                    stmt.setInt(2, member.getMemberID());
-                    stmt.executeUpdate();
-
-                    Object[][] newData = getUserInfo();
-                    for (int i = 0; i < newData.length; i++) {
-                        for (int j = 0; j < newData[i].length; j++) {
-                            userInfoTable.setValueAt(newData[i][j], i, j);
-                        }
-                    }
-
-                    JOptionPane.showMessageDialog(this, "Email updated successfully.");
-                } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(this, "An error occurred while updating the email.");
+    
+        // Validate input
+        if (newEmail == null || newEmail.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Email cannot be empty. Please enter a valid email.");
+            return;
+        }
+    
+        if (!newEmail.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+            JOptionPane.showMessageDialog(this, "Invalid email format. Please enter a valid email.");
+            return;
+        }
+    
+        // Update email in the database
+        String query = "UPDATE Members SET Email = ? WHERE MemberID = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, newEmail);
+            stmt.setInt(2, member.getMemberID());
+            stmt.executeUpdate();
+    
+            // Update the table with new data
+            Object[][] newData = getUserInfo();
+            for (int i = 0; i < newData.length; i++) {
+                for (int j = 0; j < newData[i].length; j++) {
+                    userInfoTable.setValueAt(newData[i][j], i, j);
                 }
-            } else {
-                JOptionPane.showMessageDialog(this, "Invalid email format. Please enter a valid email.");
             }
+    
+            JOptionPane.showMessageDialog(this, "Email updated successfully.");
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "An error occurred while updating the email: " + e.getMessage());
         }
     }
 

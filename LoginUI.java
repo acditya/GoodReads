@@ -146,7 +146,7 @@ public class LoginUI extends JFrame {
             JTextField phoneField = new JTextField(20);
             JTextField addressField = new JTextField(20);
             JPasswordField passwordField = new JPasswordField(20);
-
+    
             JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
             panel.add(new JLabel("Name:"));
             panel.add(nameField);
@@ -158,22 +158,29 @@ public class LoginUI extends JFrame {
             panel.add(addressField);
             panel.add(new JLabel("Password:"));
             panel.add(passwordField);
-
+    
             int result = JOptionPane.showConfirmDialog(null, panel, "Sign Up", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-
-
+    
             if (result == JOptionPane.OK_OPTION) {
                 try {
-                    String insertMemberQuery = "INSERT INTO Members (Name, Email, Phone, Address, Authorized) VALUES (?, ?, ?, ?, 0)";
-                    String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
-                    DatabaseManager dbManager = new DatabaseManager();
-
+                    // Check if any field is empty
+                    if (nameField.getText().trim().isEmpty() ||
+                        emailField.getText().trim().isEmpty() ||
+                        phoneField.getText().trim().isEmpty() ||
+                        addressField.getText().trim().isEmpty() ||
+                        passwordField.getPassword().length == 0) {
+                        throw new IllegalArgumentException("All fields are required. Please fill in all fields.");
+                    }
+    
                     String email = emailField.getText();
                     if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
                         throw new IllegalArgumentException("Invalid email format.");
                     }
-
+    
+                    String insertMemberQuery = "INSERT INTO Members (Name, Email, Phone, Address, Authorized) VALUES (?, ?, ?, ?, 0)";
+                    String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
+                    DatabaseManager dbManager = new DatabaseManager();
+    
                     dbManager.executeUpdate(insertMemberQuery, nameField.getText(), email, phoneField.getText(), addressField.getText());
                     dbManager.executeUpdate(insertPasswordQuery, hashPassword(new String(passwordField.getPassword())));
                     JOptionPane.showMessageDialog(LoginUI.this, "Sign up successful. Please wait for approval.");
@@ -184,7 +191,7 @@ public class LoginUI extends JFrame {
                 }
             }
         }
-
+    
         private String hashPassword(String password) {
             try {
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -197,7 +204,7 @@ public class LoginUI extends JFrame {
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(LoginUI.this, "Error Hashing Password: " + e.getMessage());
             }
-
+    
             return null;
         }
     }

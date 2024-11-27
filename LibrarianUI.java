@@ -486,11 +486,11 @@ public class LibrarianUI extends JFrame {
                 } else if (searchAttribute.equals("Membership Date")){
                     searchAttribute = "MembershipDate";
                 }
-                String searchTable = "Members";
-                if(searchAttribute.equals("Password")){
-                    searchTable = "MemberPasswords";
-                }
-                String query = "SELECT * FROM Members JOIN MemberPasswords ON Members.MemberID = MemberPasswords.MemberID WHERE " + searchTable + "." + searchAttribute + " LIKE ? ";
+                // String searchTable = "Members";
+                // if(searchAttribute.equals("Password")){
+                //     searchTable = "MemberPasswords";
+                // }
+                String query = "SELECT * FROM Members WHERE " + searchAttribute + " LIKE ? ";
                 
                 try (Connection conn = DatabaseManager.getConnection();
                     PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -515,7 +515,6 @@ public class LibrarianUI extends JFrame {
                                 rs.getString("Phone"),
                                 rs.getString("Address"),
                                 rs.getTimestamp("MembershipDate"),
-                                rs.getString("Password"),
                                 rs.getInt("Authorized"),
                                 rs.getInt("Deleted"),
                                 rs.getTimestamp("InformationUpdateTime"),
@@ -528,79 +527,92 @@ public class LibrarianUI extends JFrame {
             }
         });
 
-        // Add Member Button Action Listener
-        addMemberButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JTextField nameField = new JTextField(20);
-                JTextField emailField = new JTextField(20);
-                JTextField phoneField = new JTextField(20);
-                JTextField addressField = new JTextField(20);
-                JTextField passwordField = new JTextField(20);
+       // Add Member Button Action Listener
+addMemberButton.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        JTextField nameField = new JTextField(20);
+        JTextField emailField = new JTextField(20);
+        JTextField phoneField = new JTextField(20);
+        JTextField addressField = new JTextField(20);
+        JTextField passwordField = new JTextField(20);
 
-                JPanel panel = new JPanel(new GridLayout(0, 2));
-                panel.add(new JLabel("Name:"));
-                panel.add(nameField);
-                panel.add(new JLabel("Email:"));
-                panel.add(emailField);
-                panel.add(new JLabel("Phone:"));
-                panel.add(phoneField);
-                panel.add(new JLabel("Address:"));
-                panel.add(addressField);
-                panel.add(new JLabel("Password:"));
-                panel.add(passwordField);
+        JPanel panel = new JPanel(new GridLayout(0, 2));
+        panel.add(new JLabel("Name:"));
+        panel.add(nameField);
+        panel.add(new JLabel("Email:"));
+        panel.add(emailField);
+        panel.add(new JLabel("Phone:"));
+        panel.add(phoneField);
+        panel.add(new JLabel("Address:"));
+        panel.add(addressField);
+        panel.add(new JLabel("Password:"));
+        panel.add(passwordField);
 
-                int result = JOptionPane.showConfirmDialog(null, panel, "Add Member", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-                if (result == JOptionPane.OK_OPTION) {
-                    try {
-                        String insertMemberQuery = "INSERT INTO Members (Name, Email, Phone, Address, Authorized) VALUES (?, ?, ?, ?, ?)";
-                        String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
-                        DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(insertMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText(), 1);
-                        dbManager.executeUpdate(insertPasswordQuery, hashPassword(passwordField.getText()));
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Member added successfully.");
-                    } catch (SQLException ex) {
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding member: " + ex.getMessage());
-                    }
+        int result = JOptionPane.showConfirmDialog(null, panel, "Add Member", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                // Validate all fields are not empty
+                if (nameField.getText().isEmpty() || emailField.getText().isEmpty() || phoneField.getText().isEmpty() || 
+                    addressField.getText().isEmpty() || passwordField.getText().isEmpty()) {
+                    throw new IllegalArgumentException("All fields must be filled.");
                 }
 
-                // Update Member data after changes pushed
-                try {
-                    DatabaseManager dbManager = new DatabaseManager();
-                    Object[][] memberData = dbManager.getMemberData();
-
-                    // Clear existing data
-                    SwingUtilities.invokeLater(() -> {
-                        memberTableModel.setRowCount(0);
-
-                        for (Object[] row : memberData) {
-                            memberTableModel.addRow(row);
-                        }
-                    });
-                } catch (SQLException ex) {
-                    SwingUtilities.invokeLater(() -> {
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching member data: " + ex.getMessage());
-                    });
+                String email = emailField.getText();
+                if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                    throw new IllegalArgumentException("Invalid email format.");
                 }
+
+                String insertMemberQuery = "INSERT INTO Members (Name, Email, Phone, Address, Authorized) VALUES (?, ?, ?, ?, ?)";
+                String insertPasswordQuery = "INSERT INTO MemberPasswords (MemberID, Password) VALUES (LAST_INSERT_ID(), ?)";
+
+                DatabaseManager dbManager = new DatabaseManager();
+                dbManager.executeUpdate(insertMemberQuery, nameField.getText(), email, phoneField.getText(), addressField.getText(), 1);
+                dbManager.executeUpdate(insertPasswordQuery, hashPassword(passwordField.getText()));
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Member added successfully.");
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Error adding member: " + ex.getMessage());
+            } catch (IllegalArgumentException ex1) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Input error: " + ex1.getMessage());
             }
+        }
 
-            private String hashPassword(String password) {
-                try {
-                    MessageDigest md = MessageDigest.getInstance("SHA-256");
-                    byte[] hashedBytes = md.digest(password.getBytes());
-                    StringBuilder sb = new StringBuilder();
-                    for (byte b : hashedBytes) {
-                        sb.append(String.format("%02x", b));
-                    }
-                    return sb.toString();
+        // Update Member data after changes pushed
+        try {
+            DatabaseManager dbManager = new DatabaseManager();
+            Object[][] memberData = dbManager.getMemberData();
 
-                } catch (NoSuchAlgorithmException e) {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "Error hashing password: " + e.getMessage());
+            // Clear existing data
+            SwingUtilities.invokeLater(() -> {
+                memberTableModel.setRowCount(0);
+
+                for (Object[] row : memberData) {
+                    memberTableModel.addRow(row);
                 }
-                return null;
-            }
+            });
+        } catch (SQLException ex) {
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching member data: " + ex.getMessage());
+            });
+        }
+    }
 
-        });
+    private String hashPassword(String password) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hashedBytes = md.digest(password.getBytes());
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashedBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            JOptionPane.showMessageDialog(LibrarianUI.this, "Error hashing password: " + e.getMessage());
+        }
+        return null;
+    }
+});
 
 
         // Approve User Button Action Listener
@@ -740,76 +752,83 @@ public class LibrarianUI extends JFrame {
         }
     });
     
-
-
-        
-
-
-        
         // Edit Member Button Action Listener
-        editMemberButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Implement edit member functionality
-                int selectedRow = memberTable.getSelectedRow();
-                if (selectedRow == -1) {
-                    JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a member to edit.");
-                    return;
+editMemberButton.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        // Check if a row is selected
+        int selectedRow = memberTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(LibrarianUI.this, "Please select a member to edit.");
+            return;
+        }
+
+        // Retrieve existing member data
+        String memberId = memberTable.getValueAt(selectedRow, 0).toString();
+        JTextField nameField = new JTextField(memberTable.getValueAt(selectedRow, 1).toString(), 20);
+        JTextField emailField = new JTextField(memberTable.getValueAt(selectedRow, 2).toString(), 20);
+        JTextField phoneField = new JTextField(memberTable.getValueAt(selectedRow, 3).toString(), 20);
+        JTextField addressField = new JTextField(memberTable.getValueAt(selectedRow, 4).toString(), 20);
+
+        JPanel panel = new JPanel(new GridLayout(0, 2));
+        panel.add(new JLabel("Name:"));
+        panel.add(nameField);
+        panel.add(new JLabel("Email:"));
+        panel.add(emailField);
+        panel.add(new JLabel("Phone:"));
+        panel.add(phoneField);
+        panel.add(new JLabel("Address:"));
+        panel.add(addressField);
+
+        // Prompt user for edits
+        int result = JOptionPane.showConfirmDialog(null, panel, "Edit Member", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                // Check if any field is empty
+                if (nameField.getText().trim().isEmpty() ||
+                    emailField.getText().trim().isEmpty() ||
+                    phoneField.getText().trim().isEmpty() ||
+                    addressField.getText().trim().isEmpty()) {
+                    throw new IllegalArgumentException("All fields must be filled. Please ensure no fields are empty.");
                 }
 
-                String memberId = memberTable.getValueAt(selectedRow, 0).toString();
-                JTextField nameField = new JTextField(memberTable.getValueAt(selectedRow, 1).toString(), 20);
-                JTextField emailField = new JTextField(memberTable.getValueAt(selectedRow, 2).toString(), 20);
-                JTextField phoneField = new JTextField(memberTable.getValueAt(selectedRow, 3).toString(), 20);
-                JTextField addressField = new JTextField(memberTable.getValueAt(selectedRow, 4).toString(), 20);
-                JTextField passwordField = new JTextField(memberTable.getValueAt(selectedRow, 6).toString(), 20);
-
-                JPanel panel = new JPanel(new GridLayout(0, 2));
-                panel.add(new JLabel("Name:"));
-                panel.add(nameField);
-                panel.add(new JLabel("Email:"));
-                panel.add(emailField);
-                panel.add(new JLabel("Phone:"));
-                panel.add(phoneField);
-                panel.add(new JLabel("Address:"));
-                panel.add(addressField);
-                panel.add(new JLabel("Password:"));
-                panel.add(passwordField);
-
-                int result = JOptionPane.showConfirmDialog(null, panel, "Edit Member", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-                if (result == JOptionPane.OK_OPTION) {
-                    try {
-                        String updateMemberQuery = "UPDATE Members SET Name = ?, Email = ?, Phone = ?, Address = ? WHERE MemberID = ?";
-                        String updatePasswordQuery = "UPDATE MemberPasswords SET Password = ? WHERE MemberID = ?";
-                        DatabaseManager dbManager = new DatabaseManager();
-                        dbManager.executeUpdate(updateMemberQuery, nameField.getText(), emailField.getText(), phoneField.getText(), addressField.getText(), Integer.parseInt(memberId));
-                        dbManager.executeUpdate(updatePasswordQuery, passwordField.getText(), Integer.parseInt(memberId));
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Member updated successfully.");
-                    } catch (SQLException ex) {
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating member: " + ex.getMessage());
-                    }
+                // Validate email format
+                String email = emailField.getText();
+                if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                    throw new IllegalArgumentException("Invalid email format.");
                 }
 
-                // Update Member data after changes pushed
-                try {
-                    DatabaseManager dbManager = new DatabaseManager();
-                    Object[][] memberData = dbManager.getMemberData();
-
-                    // Clear existing data
-                    SwingUtilities.invokeLater(() -> {
-                        memberTableModel.setRowCount(0);
-
-                        for (Object[] row : memberData) {
-                            memberTableModel.addRow(row);
-                        }
-                    });
-                } catch (SQLException ex) {
-                    SwingUtilities.invokeLater(() -> {
-                        JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching member data: " + ex.getMessage());
-                    });
+                // Update member in the database
+                String updateMemberQuery = "UPDATE Members SET Name = ?, Email = ?, Phone = ?, Address = ? WHERE MemberID = ?";
+                DatabaseManager dbManager = new DatabaseManager();
+                dbManager.executeUpdate(updateMemberQuery, nameField.getText(), email, phoneField.getText(), addressField.getText(), Integer.parseInt(memberId));
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Member updated successfully.");
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Error updating member: " + ex.getMessage());
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(LibrarianUI.this, ex.getMessage());
             }
         }
-    });
+
+        // Update Member data after changes pushed
+        try {
+            DatabaseManager dbManager = new DatabaseManager();
+            Object[][] memberData = dbManager.getMemberData();
+
+            // Clear existing data and update the table
+            SwingUtilities.invokeLater(() -> {
+                memberTableModel.setRowCount(0);
+                for (Object[] row : memberData) {
+                    memberTableModel.addRow(row);
+                }
+            });
+        } catch (SQLException ex) {
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(LibrarianUI.this, "Error fetching member data: " + ex.getMessage());
+            });
+        }
+    }
+});
 
 
         // Set up a timer to refresh the book data periodically
